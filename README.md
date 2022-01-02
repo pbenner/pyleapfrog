@@ -212,7 +212,7 @@ plt.savefig("README_files/README_1.png")
 The regularization path is similar to the standard regularization path, except that it is estimated only at specific positions (*q=[0,1,2,60]*), as shown by the dots. It allows to leapfrog over solutions that are not of interest, i.e. all solutions with 3-59 selected features.
 
 ### Two-layer neural network with Leapfrog Regularization
-Leapfrog regularization can also be used for more complex models. We demonstrate leapfrog regularization on a two-layer neural network. However, as opposed to logistic regression, the optimization problem for a fixed regularization strength is not convex. As a result, we will get different solutions when we vary the initial conditions or the order in which we estimate parameters (i.e. the order of *q*). Furthermore, the loss can increase during training, because the leapfrog algorithm increases the regularization strength.
+Leapfrog regularization can also be used with more complex models. We demonstrate leapfrog regularization on a two-layer neural network. However, as opposed to logistic regression, the optimization problem for a fixed regularization strength is not convex. As a result, we will get different solutions when we vary the initial conditions or the order in which we estimate parameters (i.e. the order of *q*). Furthermore, the loss can increase during training, because the leapfrog algorithm increases the regularization strength.
 
 ``` python
 # Define a simple two-layer neural network for generating the labels y.
