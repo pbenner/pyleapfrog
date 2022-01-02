@@ -244,8 +244,6 @@ class TwoLayerModel(torch.nn.Module):
         self.linear1 = lf.Linear(p, k, q, weight_decay=weight_decay)
         # Second layer is dense
         self.linear2 = torch.nn.Linear(k, 1)
-        # Reset seed whenever a new model is generated
-        torch.manual_seed(0)
 
     def forward(self, x):
         x = self.linear1(x)
