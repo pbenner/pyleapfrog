@@ -45,6 +45,7 @@ X, y = make_classification(n_samples=n, n_features=p, random_state=np.random.Ran
 ```
 
 ## Logistic Regression
+We first demonstrate leapfrog regularization on logistic regression, which has the advantage that the corresponding optimization problem for estimating the parameters is convex and therefore has a unique solution (given a fixed regularization strength). Yet, as opposed to linear regression, there is no analytical solution for computing regularization strengths at which parameters change from zero to non-zero.
 
 ### Standard Logistic Regression with L1 penalty
 
@@ -211,18 +212,25 @@ plt.savefig("README_files/README_1.png")
 The regularization path is similar to the standard regularization path, except that it is estimated only at specific positions (*q=[0,1,2,60]*), as shown by the dots. It allows to leapfrog over solutions that are not of interest, i.e. all solutions with 3-59 selected features.
 
 ### Two-layer neural network with Leapfrog Regularization
+Leapfrog regularization can also be used for more complex models. We demonstrate leapfrog regularization on a two-layer neural network. However, as opposed to logistic regression, the optimization problem for a fixed regularization strength is not convex. As a result, we will get different solutions when we vary the initial conditions or the order in which we estimate parameters (i.e. the order of *q*). Furthermore, the loss can increase during training, because the leapfrog algorithm increases the regularization strength.
 
 ``` python
+# Define a simple two-layer neural network for generating the labels y.
+# The first layer has two output neurons, each with two non-zero weights.
+# Our goal is to estimate the sparse weight structure of this layer
 def sigmoid(x):
     return 1/(1 + np.exp(-x))
 def activation(x):
     return torch.nn.LeakyReLU()(torch.tensor(x)).numpy()
 def generate_data():
     rng = np.random.RandomState(0)
+    # Generate data X from a standard normal distribution
     X  = rng.multivariate_normal(np.zeros(p), np.identity(p), n)
+    # Push the generated data through a neural network
     t1 = activation( 1.1*X[:,5] - 0.8*X[:,6])
     t2 = activation( 1.4*X[:,7] - 1.3*X[:,8])
     t3 = sigmoid   ( 1.2*t1     + 1.3*t2     - 1.2)
+    # Convert output to binary labels
     y  = t3 > 0.5
     return X, y
 ```
@@ -254,7 +262,8 @@ class TwoLayerModel(torch.nn.Module):
 ```
 
 ``` python
-# Specify a list of the number of features we want to estimate
+# Specify a list of the number of features we want to estimate. We typically obtain
+# better solutions if models with more parameters are estimated first.
 q = [10,5,4,3,2,1,0]
 
 # Define a simple logistic regression model
@@ -354,6 +363,8 @@ plt.savefig("README_files/README_2.png")
   <img src="https://github.com/pbenner/pyleapfrog/raw/master/README_files/README_2.png" title="Standard Regulariztion Path">
 </p>
 
+The result shows that the algorithm identifies the correct parameters for *q=2*. Furthermore, the loss increases after approximately 10000 iterations, because models with fewer parameters are trained.
+
 ``` python
 plt.rcParams['figure.figsize'] = [15, 5]
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
@@ -379,4 +390,4 @@ plt.savefig("README_files/README_3.png")
   <img src="https://github.com/pbenner/pyleapfrog/raw/master/README_files/README_3.png" title="Standard Regulariztion Path">
 </p>
 
-
+The result shows the regularization paths as a function of regularization strength. The paths are not simple functions of the regularization strength, since we are dealing with non-convex optimization problems.
