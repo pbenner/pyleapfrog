@@ -292,9 +292,9 @@ trainloader   = DataLoader(
 l_      = []
 # Record the loss
 loss_   = []
-# Record the coefficients of the logistic regression
-coefs1_ = []
-coefs2_ = []
+# Record the coefficients (weights) of the model's first layer
+coefs1_ = [] # First layer output neuron 1
+coefs2_ = [] # First layer output neuron 2
 while True:
   # Do a maximum of max_epochs iterations over the training set
   for _epoch in range(0, max_epochs):
