@@ -53,6 +53,8 @@ class Linear(torch.nn.Module):
     def forward(self, *args, **kwargs):
         # Simply forward and args and kwargs to module
         return self.module(*args, **kwargs)
+    def selected_features(self):
+        return list(torch.where(self.module.weight != 0.0)[1].numpy())
 
 ## Leapfrog optimizer
 ## ----------------------------------------------------------------------------
