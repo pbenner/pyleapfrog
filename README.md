@@ -266,10 +266,10 @@ class TwoLayerModel(torch.nn.Module):
 # better solutions if models with more parameters are estimated first.
 q = [10,5,4,3,2,1,0]
 
-# Define a simple logistic regression model
+# Define a two-layer neural network for binary regression
 model = TwoLayerModel(X.shape[1], q, 2)
 
-# Logistic regression models are trained using the binary cross-entropy
+# Binary regression models are trained using the binary cross-entropy
 loss_function = torch.nn.BCELoss()
 # We use a standard optimizer such as Adam...
 optimizer     = torch.optim.Adam(model.parameters(), lr=0.005)
