@@ -91,12 +91,12 @@ class Optimizer():
                 # do not regularize
                 return
         # compute direction for shrinking the parameters
-        idx = parameters.grad[i] != 0.0
+        idx = (parameters.grad[i] != 0.0).nonzero().flatten()
         nu  = torch.abs((parameters.data_old[i][idx] - parameters.data[i][idx]) / parameters.grad[i][idx])
         if parameters.q is not None:
             # compute regularization strength
             sigma = torch.abs( parameters.data[i][idx] ) / nu
-            n     = parameters.data[i].size(0) - parameters.q[0]
+            n     = idx.size(0) - parameters.q[0]
             parameters.weight_decay[i] = torch.kthvalue(sigma, n).values.item()
         # apply proximal operator
         parameters.data[i][idx] = torch.sign(parameters.data[i][idx])*torch.max(torch.abs(parameters.data[i][idx]) - parameters.weight_decay[i]*nu, torch.tensor([0.0]))
