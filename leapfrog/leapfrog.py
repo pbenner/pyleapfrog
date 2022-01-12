@@ -90,8 +90,11 @@ class Optimizer():
             if parameters.q[0] < 0 or parameters.q[0] >= parameters.data[i].size(0):
                 # do not regularize
                 return
-        # compute direction for shrinking the parameters
+        # set all parameters to zero where the gradient is zero
+        parameters.data[i][parameters.grad[i] == 0.0] = 0.0
+        # consider only parameters where the gradient is not zero
         idx = (parameters.grad[i] != 0.0).nonzero().flatten()
+        # compute direction for shrinking the parameters
         nu  = torch.abs((parameters.data_old[i][idx] - parameters.data[i][idx]) / parameters.grad[i][idx])
         if parameters.q is not None:
             # compute regularization strength
