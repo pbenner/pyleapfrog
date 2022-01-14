@@ -90,8 +90,13 @@ class Optimizer():
             if parameters.q[0] < 0 or parameters.q[0] >= parameters.data[i].size(0):
                 # do not regularize
                 return
+        # discard all positions where the gradient is zero
+        grad_zero_1 = parameters.grad[i] == 0.0
+        # in addition all parameters that did not receive an update (due to small gradient and numerical errors)
+        grad_zero_2 = parameters.data_old[i] - parameters.data[i] == 0.0
+        grad_zero   = torch.logical_or(grad_zero_1, grad_zero_2)
         # set all parameters to zero where the gradient is zero
-        parameters.data[i][parameters.grad[i] == 0.0] = 0.0
+        parameters.data[i][grad_zero] = 0.0
         # consider only parameters where the gradient is not zero
         idx = (parameters.grad[i] != 0.0).nonzero().flatten()
         # compute direction for shrinking the parameters
