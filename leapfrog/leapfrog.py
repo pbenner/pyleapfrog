@@ -108,6 +108,9 @@ class Optimizer():
             idx = ((parameters.grad[i] != 0.0) & ~exclude).nonzero().flatten()
         else:
             idx = (parameters.grad[i] != 0.0).nonzero().flatten()
+        if len(idx) <= parameters.q[0]:
+            # not enough features
+            return
         # compute direction for shrinking the parameters
         nu  = torch.abs((parameters.data_old[i][idx] - parameters.data[i][idx]) / parameters.grad[i][idx])
         if parameters.q is not None:
