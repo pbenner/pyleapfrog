@@ -46,10 +46,11 @@ class Parameter(torch.nn.Parameter):
 ## ----------------------------------------------------------------------------
 
 class Linear(torch.nn.Module):
-    def __init__(self, in_features: int, out_features: int, q: int, weight_decay=None, bias=True):
+    def __init__(self, in_features: int, out_features: int, q: int, unique=False, weight_decay=None, bias=True):
         super().__init__()
-        self.module = torch.nn.Linear(in_features, out_features, bias=bias)
+        self.module        = torch.nn.Linear(in_features, out_features, bias=bias)
         self.module.weight = Parameter(self.module.weight, q, weight_decay=weight_decay)
+        self.unique        = unique
     def forward(self, *args, **kwargs):
         # Simply forward and args and kwargs to module
         return self.module(*args, **kwargs)
@@ -80,9 +81,14 @@ class Optimizer():
         for param_group in self.optimizer.param_groups:
             for parameters in param_group['params']:
                 if isinstance(parameters, Parameter):
+                    exclude = None
+                    if parameters.unique:
+                        exclude = torch.tensor(parameters.data.shape[1]*[False])
                     for i in range(0, parameters.data.size(0)):
-                        self._leapfrog_regularize(parameters, i)
-    def _leapfrog_regularize(self, parameters, i):
+                        self._leapfrog_regularize(parameters, i, exclude=exclude)
+                        if parameters.unique:
+                            exclude = exclude | (parameters.data[i] != 0.0)
+    def _leapfrog_regularize(self, parameters, i, exclude=None):
         if parameters.q is not None:
             if parameters.q[0] is None:
                 # do not regularize
@@ -98,7 +104,10 @@ class Optimizer():
         # set all parameters to zero where the gradient is zero
         parameters.data[i][grad_zero] = 0.0
         # consider only parameters where the gradient is not zero
-        idx = (parameters.grad[i] != 0.0).nonzero().flatten()
+        if exclude is not None:
+            idx = ((parameters.grad[i] != 0.0) & ~exclude).nonzero().flatten()
+        else:
+            idx = (parameters.grad[i] != 0.0).nonzero().flatten()
         # compute direction for shrinking the parameters
         nu  = torch.abs((parameters.data_old[i][idx] - parameters.data[i][idx]) / parameters.grad[i][idx])
         if parameters.q is not None:
@@ -106,6 +115,9 @@ class Optimizer():
             sigma = torch.abs( parameters.data[i][idx] ) / nu
             n     = idx.size(0) - parameters.q[0]
             parameters.weight_decay[i] = torch.kthvalue(sigma, n).values.item()
+        # set all excluded parameters to zero
+        if exclude is not None:
+            parameters.data[i][exclude] = 0.0
         # apply proximal operator
         parameters.data[i][idx] = torch.sign(parameters.data[i][idx])*torch.max(torch.abs(parameters.data[i][idx]) - parameters.weight_decay[i]*nu, torch.tensor([0.0]))
     def converged(self, loss):
