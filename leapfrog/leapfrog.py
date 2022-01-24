@@ -135,7 +135,7 @@ class Optimizer():
         parameters.data[i][~idx] = 0.0
         # apply proximal operator
         parameters.data[i][~exon_idx] = 0.0
-        parameters.data[i][ exon_idx] = torch.sign(parameters.data[i][exon_idx])*torch.abs(parameters.data[i][exon_idx] - parameters.weight_decay[i]*nu[exon_idx])
+        parameters.data[i][ exon_idx] = torch.sign(parameters.data[i][exon_idx])*(torch.abs(parameters.data[i][exon_idx]) - parameters.weight_decay[i]*nu[exon_idx])
     def converged(self, loss):
         converged = False
         if self.loss is not None:
