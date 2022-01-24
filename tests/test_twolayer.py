@@ -25,40 +25,56 @@ import torch
 from sklearn.datasets import make_classification
 from torch.utils.data import DataLoader, TensorDataset
 
-## Leapfrog logistic model
+## Data generator
 ## ----------------------------------------------------------------------------
 
-# Definition of a simple logistic regression model, where
-# the weights are subject to leapfrog regularization
-class LogisticModel(torch.nn.Module):
-    def __init__(self, p, q, weight_decay=None):
-        super(LogisticModel, self).__init__()
-        # The Leapfrog linear layer is identical to the Torch
-        # linear layer, except that the weights are subject to
-        # leapfrog regularization
-        self.linear = lf.Linear(p, 1, q, weight_decay=weight_decay)
+def sigmoid(x):
+    return 1/(1 + np.exp(-x))
+def activation(x):
+    return torch.nn.LeakyReLU()(torch.tensor(x)).numpy()
+def generate_data(n, p):
+    rng = np.random.RandomState(0)
+    X  = rng.multivariate_normal(np.zeros(p), np.identity(p), n)
+    t1 = activation( 1.1*X[:,5] - 0.8*X[:,6])
+    t2 = activation( 1.4*X[:,7] - 1.3*X[:,8])
+    t3 = sigmoid   ( 1.2*t1     + 1.3*t2     - 1.2)
+    y  = t3 > 0.5
+    return X, y
+
+## Simple two-layer neural network
+## ----------------------------------------------------------------------------
+
+class TwoLayerModel(torch.nn.Module):
+    def __init__(self, p, q, k, weight_decay=None):
+        super(TwoLayerModel, self).__init__()
+        # First layer is subject to leapfrog regularization
+        self.linear1 = lf.Linear(p, k, q, weight_decay=weight_decay)
+        # Second layer is dense
+        self.linear2 = torch.nn.Linear(k, 1)
 
     def forward(self, x):
-        x = self.linear(x)
+        x = self.linear1(x)
+        x = torch.sigmoid(x)
+        x = self.linear2(x)
         x = torch.sigmoid(x)
         return x
 
 ## Train logistic model
 ## ----------------------------------------------------------------------------
 
-def train_logistic_model():
+def train_twolayer_model():
     # Number of samples
     n = 1000
     # Number of features
     p = 100
     # Generate features X and labels y
-    X, y = make_classification(n_samples=n, n_features=p, random_state=np.random.RandomState(0))
+    X, y = generate_data(n, p)
 
     # Specify a list of the number of features we want to estimate
-    q = [0,1,2,60]
+    q = [0,1,2,3,4,5,10]
 
     # Define a simple logistic regression model
-    model = LogisticModel(X.shape[1], q)
+    model = TwoLayerModel(X.shape[1], q, 2)
 
     # Logistic regression models are trained using the binary cross-entropy
     loss_function = torch.nn.BCELoss()
@@ -80,11 +96,12 @@ def train_logistic_model():
         num_workers=1)
 
     # Record the regularization strength lambda
-    l_     = []
+    l_      = []
     # Record the loss
-    loss_  = []
+    loss_   = []
     # Record the coefficients of the logistic regression
-    coefs_ = []
+    coefs1_ = []
+    coefs2_ = []
     while True:
         # Do a maximum of max_epochs iterations over the training set
         for _epoch in range(0, max_epochs):
@@ -113,11 +130,10 @@ def train_logistic_model():
             if optimizer.converged(loss.item()) or _epoch == max_epochs-1:
                 # Record lambda (weight decay)
                 weight_decay = optimizer.get_weight_decay()
-                # Each layer and output node has its own weight decay parameter. We
-                # have only one layer and output node.
-                l_.append(weight_decay[0][0].item())
                 # Record coefficients (weights) from the linear layer
-                coefs_.append(list(model.parameters())[0][0].detach().numpy().copy())
+                # Record coefficients (weights) from the linear layer
+                coefs1_.append(list(model.parameters())[0][0].detach().numpy().copy())
+                coefs2_.append(list(model.parameters())[0][1].detach().numpy().copy())
                 break
 
         print(f'Training process has finished for target q={optimizer.get_q()[0]}.')
@@ -126,13 +142,13 @@ def train_logistic_model():
             # There are no more targets, exit loop
             break
 
-    return np.array(l_), np.array(loss_), np.array(coefs_)
+    return np.array(loss_), np.array(coefs1_). np.array(coefs2_)
 
 ## Tests
 ## ----------------------------------------------------------------------------
 
-def test_logistic():
-    l, loss, coefs = train_logistic_model()
+def test_twolayer():
+    loss, coefs1, coefs2 = train_twolayer_model()
 
     # Test regularization strengths
     assert np.sum(np.abs(l - [0.4989, 0.04353, 0.03012, 0.0029])) < 1e-2, "Invalid regularization strengths"
