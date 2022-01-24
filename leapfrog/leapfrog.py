@@ -105,24 +105,37 @@ class Optimizer():
         parameters.data[i][grad_zero] = 0.0
         # consider only parameters where the gradient is not zero
         if exclude is not None:
-            idx = ((parameters.grad[i] != 0.0) & ~exclude).nonzero().flatten()
+            idx = (parameters.grad[i] != 0.0) & ~exclude
         else:
-            idx = (parameters.grad[i] != 0.0).nonzero().flatten()
-        if len(idx) <= parameters.q[0]:
+            idx =  parameters.grad[i] != 0.0
+        idx_n = idx.sum().item()
+        if idx_n <= parameters.q[0]:
+            print(f'Neuron {i} has not enough features')
             # not enough features
             return
         # compute direction for shrinking the parameters
-        nu  = torch.abs((parameters.data_old[i][idx] - parameters.data[i][idx]) / parameters.grad[i][idx])
+        nu = torch.abs((parameters.data_old[i] - parameters.data[i]) / parameters.grad[i])
         if parameters.q is not None:
             # compute regularization strength
-            sigma = torch.abs( parameters.data[i][idx] ) / nu
-            n     = idx.size(0) - parameters.q[0]
-            parameters.weight_decay[i] = torch.kthvalue(sigma, n).values.item()
-        # set all excluded parameters to zero
-        if exclude is not None:
-            parameters.data[i][exclude] = 0.0
+            sigma = torch.abs( parameters.data[i] ) / nu
+            sigma[~idx] = 0.0
+            # indices of values that will remain non-zero
+            exon     = torch.topk(sigma, parameters.q[0], sorted=True)
+            exon_idx = torch.tensor(len(sigma)*[False])
+            exon_idx[exon.indices] = True
+            exon_min = exon.values[-1]
+            # find maximum of all values that are smaller than exin_min
+            intron   = sigma[~exon_idx][sigma[~exon_idx] < exon_min]
+            if len(intron) == 0:
+                parameters.weight_decay[i] = torch.tensor(0.0)
+            else:
+                parameters.weight_decay[i] = intron.max()
+        # set all parameters to zero where the gradient is zero, or
+        # that were excluded
+        parameters.data[i][~idx] = 0.0
         # apply proximal operator
-        parameters.data[i][idx] = torch.sign(parameters.data[i][idx])*torch.max(torch.abs(parameters.data[i][idx]) - parameters.weight_decay[i]*nu, torch.tensor([0.0]))
+        parameters.data[i][~exon_idx] = 0.0
+        parameters.data[i][ exon_idx] = torch.sign(parameters.data[i][exon_idx])*(torch.abs(parameters.data[i][exon_idx]) - parameters.weight_decay[i]*nu[exon_idx])
     def converged(self, loss):
         converged = False
         if self.loss is not None:
