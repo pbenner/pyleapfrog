@@ -55,7 +55,7 @@ def train_logistic_model():
     X, y = make_classification(n_samples=n, n_features=p, random_state=np.random.RandomState(0))
 
     # Specify a list of the number of features we want to estimate
-    q = [0,1,2,60]
+    q = [1,2,60]
 
     # Define a simple logistic regression model
     model = LogisticModel(X.shape[1], q)
@@ -135,13 +135,12 @@ def test_logistic():
     l, loss, coefs = train_logistic_model()
 
     # Test regularization strengths
-    assert np.sum(np.abs(l - [0.4989, 0.04353, 0.03012, 0.0029])) < 1e-2, f'Invalid regularization strengths: {l}'
+    assert np.sum(np.abs(l - [0.04353, 0.03012, 0.0029])) < 1e-2, f'Invalid regularization strengths: {l}'
 
     # Test final loss
-    assert np.abs(loss[-1] - 0.1283) < 1e-2, "Invalid final loss"
+    assert np.abs(loss[-1] - 0.1283) < 1e-2, 'Invalid final loss: {loss[-1]}'
 
     # Test number of parameters
-    assert np.sum(coefs[0] != 0.0) ==  0, "Invalid number of parameters"
-    assert np.sum(coefs[1] != 0.0) ==  1, "Invalid number of parameters"
-    assert np.sum(coefs[2] != 0.0) ==  2, "Invalid number of parameters"
-    assert np.sum(coefs[3] != 0.0) == 60, "Invalid number of parameters"
+    assert np.sum(coefs[0] != 0.0) ==  1, "Invalid number of parameters"
+    assert np.sum(coefs[1] != 0.0) ==  2, "Invalid number of parameters"
+    assert np.sum(coefs[2] != 0.0) == 60, "Invalid number of parameters"

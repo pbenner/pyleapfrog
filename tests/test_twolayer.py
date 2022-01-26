@@ -71,7 +71,7 @@ def train_twolayer_model():
     X, y = generate_data(n, p)
 
     # Specify a list of the number of features we want to estimate
-    q = [0,1,2,3,4,5,10]
+    q = [1,2,3,4,5,10]
 
     # Define a simple logistic regression model
     model = TwoLayerModel(X.shape[1], q, 2)
@@ -96,7 +96,8 @@ def train_twolayer_model():
         num_workers=1)
 
     # Record the regularization strength lambda
-    l_      = []
+    l1_     = []
+    l2_     = []
     # Record the loss
     loss_   = []
     # Record the coefficients of the logistic regression
@@ -130,7 +131,9 @@ def train_twolayer_model():
             if optimizer.converged(loss.item()) or _epoch == max_epochs-1:
                 # Record lambda (weight decay)
                 weight_decay = optimizer.get_weight_decay()
-                # Record coefficients (weights) from the linear layer
+                # Each layer and output node has its own weight decay parameter
+                l1_.append(weight_decay[0][0].item())
+                l2_.append(weight_decay[0][1].item())
                 # Record coefficients (weights) from the linear layer
                 coefs1_.append(list(model.parameters())[0][0].detach().numpy().copy())
                 coefs2_.append(list(model.parameters())[0][1].detach().numpy().copy())
@@ -142,30 +145,32 @@ def train_twolayer_model():
             # There are no more targets, exit loop
             break
 
-    return np.array(loss_), coefs1_, coefs2_
+    return np.array(loss_), np.array(l1_), np.array(l2_), coefs1_, coefs2_
 
 ## Tests
 ## ----------------------------------------------------------------------------
 
 def test_twolayer():
-    loss, coefs1, coefs2 = train_twolayer_model()
+    loss, l1, l2, coefs1, coefs2 = train_twolayer_model()
+
+    # Test regularization strengths
+    assert np.sum(np.abs(l1 - [0.00618848, 0.00489918, 0.00487878, 0.00445144, 0.00324633, 0.00205092])) < 1e-2, f'Invalid regularization strengths: {l1}'
+    assert np.sum(np.abs(l2 - [0.00618848, 0.00489918, 0.00487878, 0.00445144, 0.00324633, 0.00205092])) < 1e-2, f'Invalid regularization strengths: {l2}'
 
     # Test final loss
-    assert np.abs(loss[-1] - 0.1283) < 1e-2, "Invalid final loss"
+    assert np.abs(loss[-1] - 0.1283) < 1e-2, f'Invalid final loss: {loss[-1]}'
 
     # Test number of parameters
-    assert np.sum(coefs1[0] != 0.0) ==  0, "Invalid number of parameters"
-    assert np.sum(coefs1[1] != 0.0) ==  1, "Invalid number of parameters"
-    assert np.sum(coefs1[2] != 0.0) ==  2, "Invalid number of parameters"
-    assert np.sum(coefs1[3] != 0.0) ==  3, "Invalid number of parameters"
-    assert np.sum(coefs1[4] != 0.0) ==  4, "Invalid number of parameters"
-    assert np.sum(coefs1[5] != 0.0) ==  5, "Invalid number of parameters"
-    assert np.sum(coefs1[6] != 0.0) == 10, "Invalid number of parameters"
+    assert np.sum(coefs1[0] != 0.0) ==  1, "Invalid number of parameters"
+    assert np.sum(coefs1[1] != 0.0) ==  2, "Invalid number of parameters"
+    assert np.sum(coefs1[2] != 0.0) ==  3, "Invalid number of parameters"
+    assert np.sum(coefs1[3] != 0.0) ==  4, "Invalid number of parameters"
+    assert np.sum(coefs1[4] != 0.0) ==  5, "Invalid number of parameters"
+    assert np.sum(coefs1[5] != 0.0) == 10, "Invalid number of parameters"
 
-    assert np.sum(coefs2[0] != 0.0) ==  0, "Invalid number of parameters"
-    assert np.sum(coefs2[1] != 0.0) ==  1, "Invalid number of parameters"
-    assert np.sum(coefs2[2] != 0.0) ==  2, "Invalid number of parameters"
-    assert np.sum(coefs2[3] != 0.0) ==  3, "Invalid number of parameters"
-    assert np.sum(coefs2[4] != 0.0) ==  4, "Invalid number of parameters"
-    assert np.sum(coefs2[5] != 0.0) ==  5, "Invalid number of parameters"
-    assert np.sum(coefs2[6] != 0.0) == 10, "Invalid number of parameters"
+    assert np.sum(coefs2[0] != 0.0) ==  1, "Invalid number of parameters"
+    assert np.sum(coefs2[1] != 0.0) ==  2, "Invalid number of parameters"
+    assert np.sum(coefs2[2] != 0.0) ==  3, "Invalid number of parameters"
+    assert np.sum(coefs2[3] != 0.0) ==  4, "Invalid number of parameters"
+    assert np.sum(coefs2[4] != 0.0) ==  5, "Invalid number of parameters"
+    assert np.sum(coefs2[5] != 0.0) == 10, "Invalid number of parameters"
