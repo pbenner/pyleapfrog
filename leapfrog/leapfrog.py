@@ -114,7 +114,7 @@ class Optimizer():
             if parameters.q[0] < 0 or parameters.q[0] >= parameters.data[i].size(0):
                 # do not regularize
                 return
-        _leapfrog_regularize(
+        parameters.weight_decay[i] = _leapfrog_regularize(
             parameters.data    [i].numpy(),
             parameters.data_old[i].numpy(),
             parameters.grad    [i].numpy(),

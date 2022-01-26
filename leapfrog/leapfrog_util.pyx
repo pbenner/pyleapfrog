@@ -62,7 +62,7 @@ cdef np.float32_t __compute_lambda(np.ndarray[np.float32_t, ndim=1] _sigma, Py_s
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-cdef __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, _data_old, _grad, _nu, _sigma, np.ndarray[np.uint8_t, ndim=1] _exclude, Py_ssize_t n, q):
+cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, _data_old, _grad, _nu, _sigma, np.ndarray[np.uint8_t, ndim=1] _exclude, Py_ssize_t n, q):
     cdef np.float32_t[::1] data     = _data
     cdef np.float32_t[::1] data_old = _data_old
     cdef np.float32_t[::1] grad     = _grad
@@ -131,6 +131,8 @@ cdef __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, _data_old, _g
                 if k == q:
                     break
 
+    return l
+
 ## Wrapper
 ## ----------------------------------------------------------------------------
 
@@ -138,5 +140,5 @@ cdef __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, _data_old, _g
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-def _leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, q):
-    __leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, data.shape[0], q)
+def _leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, q) -> np.float32_t:
+    return __leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, data.shape[0], q)
