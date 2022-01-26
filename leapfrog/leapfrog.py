@@ -105,6 +105,7 @@ class Optimizer():
                         parameters.exclude.fill(False)
                     for i in range(0, parameters.data.size(0)):
                         self._leapfrog_regularize(parameters, i)
+
     def _leapfrog_regularize(self, parameters, i):
         if parameters.q is not None:
             if parameters.q[0] is None:
