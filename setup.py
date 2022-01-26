@@ -1,4 +1,7 @@
-from distutils.core import setup
+import numpy as np
+
+from setuptools   import setup, Extension
+from Cython.Build import cythonize
 
 setup(name='leapfrog',
       version='0.0.1',
@@ -15,5 +18,8 @@ setup(name='leapfrog',
       ],
       packages=['leapfrog'],
       install_requires=['torch', 'numpy'],
-      python_requires='>3.6'
+      python_requires='>3.6',
+      ext_modules = cythonize([
+          Extension('leapfrog_util', sources=["leapfrog/leapfrog_util.pyx"], include_dirs=[np.get_include()], define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')])
+      ], compiler_directives={'language_level' : "3"})
       )
