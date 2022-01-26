@@ -126,7 +126,7 @@ def train_logistic_model():
             # There are no more targets, exit loop
             break
 
-    return np.array(l_), np.array(loss_), np.array(coefs_)
+    return np.array(l_), np.array(loss_), coefs_
 
 ## Tests
 ## ----------------------------------------------------------------------------
@@ -135,7 +135,7 @@ def test_logistic():
     l, loss, coefs = train_logistic_model()
 
     # Test regularization strengths
-    assert np.sum(np.abs(l - [0.4989, 0.04353, 0.03012, 0.0029])) < 1e-2, "Invalid regularization strengths"
+    assert np.sum(np.abs(l - [0.4989, 0.04353, 0.03012, 0.0029])) < 1e-2, f'Invalid regularization strengths: {l}'
 
     # Test final loss
     assert np.abs(loss[-1] - 0.1283) < 1e-2, "Invalid final loss"

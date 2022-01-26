@@ -142,7 +142,7 @@ def train_twolayer_model():
             # There are no more targets, exit loop
             break
 
-    return np.array(loss_), np.array(coefs1_). np.array(coefs2_)
+    return np.array(loss_), coefs1_, coefs2_
 
 ## Tests
 ## ----------------------------------------------------------------------------
@@ -150,14 +150,22 @@ def train_twolayer_model():
 def test_twolayer():
     loss, coefs1, coefs2 = train_twolayer_model()
 
-    # Test regularization strengths
-    assert np.sum(np.abs(l - [0.4989, 0.04353, 0.03012, 0.0029])) < 1e-2, "Invalid regularization strengths"
-
     # Test final loss
     assert np.abs(loss[-1] - 0.1283) < 1e-2, "Invalid final loss"
 
     # Test number of parameters
-    assert np.sum(coefs[0] != 0.0) ==  0, "Invalid number of parameters"
-    assert np.sum(coefs[1] != 0.0) ==  1, "Invalid number of parameters"
-    assert np.sum(coefs[2] != 0.0) ==  2, "Invalid number of parameters"
-    assert np.sum(coefs[3] != 0.0) == 60, "Invalid number of parameters"
+    assert np.sum(coefs1[0] != 0.0) ==  0, "Invalid number of parameters"
+    assert np.sum(coefs1[1] != 0.0) ==  1, "Invalid number of parameters"
+    assert np.sum(coefs1[2] != 0.0) ==  2, "Invalid number of parameters"
+    assert np.sum(coefs1[3] != 0.0) ==  3, "Invalid number of parameters"
+    assert np.sum(coefs1[4] != 0.0) ==  4, "Invalid number of parameters"
+    assert np.sum(coefs1[5] != 0.0) ==  5, "Invalid number of parameters"
+    assert np.sum(coefs1[6] != 0.0) == 10, "Invalid number of parameters"
+
+    assert np.sum(coefs2[0] != 0.0) ==  0, "Invalid number of parameters"
+    assert np.sum(coefs2[1] != 0.0) ==  1, "Invalid number of parameters"
+    assert np.sum(coefs2[2] != 0.0) ==  2, "Invalid number of parameters"
+    assert np.sum(coefs2[3] != 0.0) ==  3, "Invalid number of parameters"
+    assert np.sum(coefs2[4] != 0.0) ==  4, "Invalid number of parameters"
+    assert np.sum(coefs2[5] != 0.0) ==  5, "Invalid number of parameters"
+    assert np.sum(coefs2[6] != 0.0) == 10, "Invalid number of parameters"
