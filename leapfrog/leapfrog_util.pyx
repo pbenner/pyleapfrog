@@ -76,14 +76,21 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
 
     # Compute nu and sigma
     for i in range(n):
+        if isnan(data[i]):
+            data    [i] = 0.0
+        if isnan(data_old[i]):
+            data_old[i] = 0.0
+
         nu   [i] = abs((data[i] - data_old[i])/grad[i])
         sigma[i] = abs(data[i])/nu[i]
 
         if isnan(sigma[i]) or isinf(sigma[i]):
+            nu   [i] = 0.0
             sigma[i] = 0.0
         
         if exclude is not None:
             if exclude[i]:
+                nu   [i] = 0.0
                 sigma[i] = 0.0
 
     # Partially sort sigma to find the q-th largest value
@@ -97,26 +104,26 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
     v = -1.0
     # Update weights
     for i in range(n):
-        if sigma[i] == 0.0:
+        if nu[i] == 0.0:
             data[i] = 0.0
             continue
         if exclude is not None:
             if exclude[i]:
                 data[i] = 0.0
                 continue
-        if abs(data[i]) > l*nu[i]:
-            # Apply proximal operator
-            data[i] = sign(data[i])*(abs(data[i]) - l*nu[i])
-            # Count number of non-zero parameters
-            k += 1
-            # Record smallest absolute value
-            if v == -1.0 or abs(data[i]) < v:
-                v = abs(data[i])
-            # Exclude this in future steps
-            if exclude is not None:
-                exclude[i] = True
-        else:
+        if abs(data[i]) <= l*nu[i]:
             data[i] = 0.0
+            continue
+        # Apply proximal operator
+        data[i] = sign(data[i])*(abs(data[i]) - l*nu[i])
+        # Count number of non-zero parameters
+        k += 1
+        # Record smallest absolute value
+        if v == -1.0 or abs(data[i]) < v:
+            v = abs(data[i])
+        # Exclude this in future steps
+        if exclude is not None:
+            exclude[i] = True
 
     # Fix issue when data contains multiple identical elements
     if k > q:
