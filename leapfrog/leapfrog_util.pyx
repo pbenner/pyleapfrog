@@ -56,7 +56,7 @@ cdef np.float32_t __compute_lambda(np.ndarray[np.float32_t, ndim=1] _sigma, Py_s
         if sigma[i] > r and sigma[i] < l:
             r = sigma[i]
 
-    return (r+l)/(<np.float32_t>2.0)
+    return r
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
