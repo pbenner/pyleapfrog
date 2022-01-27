@@ -134,6 +134,9 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
                 data[i] = 0.0
                 # Reduce count of non-zero elements
                 k -= 1
+                # Exclude this in future steps
+                if exclude is not None:
+                    exclude[i] = False
                 # Until q elements are non-zero
                 if k == q:
                     break
