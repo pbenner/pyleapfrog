@@ -42,16 +42,16 @@ class LogisticModel(torch.nn.Module):
 ## ----------------------------------------------------------------------------
 
 class LeapfrogNeuralModel(torch.nn.Module):
-    def __init__(self, p, q, ks, weight_decay=None, batch_normalization=False, dropout=None, skip_connections=False):
+    def __init__(self, p, q, ks, q_steps=[None], activation=torch.nn.ELU(), weight_decay=None, batch_normalization=False, dropout=None, skip_connections=False, unorthodox=False):
         torch     .manual_seed(1)
         torch.cuda.manual_seed(1)
         super(LeapfrogNeuralModel, self).__init__()
-        self.linear_lf   = lf.Linear(p, q, [None, 1], unique=True, weight_decay=weight_decay)
+        self.linear_lf   = lf.Linear(p, q, q_steps+[1], unique=True, weight_decay=weight_decay, unorthodox=unorthodox)
         self.linear      = []
         self.batchnorm   = []
         self.linear_in   = torch.nn.Linear(q, ks[0])
         self.linear_out  = torch.nn.Linear(ks[-1], 1)
-        self.activation  = torch.nn.ELU()
+        self.activation  = activation
         if dropout is None:
             self.dropOut = None
         else:
@@ -59,12 +59,11 @@ class LeapfrogNeuralModel(torch.nn.Module):
         for i in range(len(ks)-1):
             self.linear   .append(torch.nn.Linear(ks[i], ks[i+1]))
             if batch_normalization:
-                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i+1]))
+                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i+1], momentum=0.0, affine=False))
         self.skip_connections = skip_connections
 
     def forward(self, x):
         x = self.linear_lf(x)
-        x = self.activation(x)
         x = self.linear_in(x)
         x = self.activation(x)
         # Apply dense layers
