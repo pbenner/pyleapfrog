@@ -31,18 +31,19 @@ from leapfrog_util import _leapfrog_regularize
 ## ----------------------------------------------------------------------------
 
 class Parameter(torch.nn.Parameter):
-    def __new__(cls, data, q: List[int], unique=False, weight_decay=None):
+    def __new__(cls, data, q: List[int], unique=False, weight_decay=None, unorthodox=False):
         if q is not None and len(q) == 0:
             raise ValueError
         if q is None and weight_decay is None:
             raise ValueError
         if weight_decay is not None and len(weight_decay) != data.size(0):
             raise ValueError
-        x          = torch.nn.Parameter.__new__(cls, data=data)
-        x.q        = q
-        x.data_old = torch.zeros (x.shape)
-        x.nu       = np.zeros(x.shape[1], dtype=np.float32)
-        x.sigma    = np.zeros(x.shape[1], dtype=np.float32)
+        x            = torch.nn.Parameter.__new__(cls, data=data)
+        x.q          = q
+        x.data_old   = torch.zeros (x.shape)
+        x.nu         = np.zeros(x.shape[1], dtype=np.float32)
+        x.sigma      = np.zeros(x.shape[1], dtype=np.float32)
+        x.unorthodox = unorthodox
         if weight_decay is None:
             x.weight_decay = np.zeros(data.size(0), dtype=np.float32)
         else:
@@ -57,10 +58,10 @@ class Parameter(torch.nn.Parameter):
 ## ----------------------------------------------------------------------------
 
 class Linear(torch.nn.Module):
-    def __init__(self, in_features: int, out_features: int, q: int, unique=False, weight_decay=None, bias=True):
+    def __init__(self, in_features: int, out_features: int, q: int, unique=False, weight_decay=None, unorthodox=False, bias=True):
         super().__init__()
         self.module        = torch.nn.Linear(in_features, out_features, bias=bias)
-        self.module.weight = Parameter(self.module.weight, q, unique=unique, weight_decay=weight_decay)
+        self.module.weight = Parameter(self.module.weight, q, unique=unique, weight_decay=weight_decay, unorthodox=unorthodox)
     def forward(self, *args, **kwargs):
         # Simply forward and args and kwargs to module
         return self.module(*args, **kwargs)
@@ -121,7 +122,8 @@ class Optimizer():
             parameters.nu,
             parameters.sigma,
             parameters.exclude,
-            parameters.q[0])
+            parameters.q[0],
+            parameters.unorthodox)
 
     def converged(self, loss):
         converged = False

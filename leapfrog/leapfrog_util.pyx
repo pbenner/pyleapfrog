@@ -25,7 +25,7 @@ cimport cython
 import numpy as np
 cimport numpy as np
 
-from libc.math cimport abs, isnan, isinf
+from libc.math cimport isnan, isinf
 
 ## ----------------------------------------------------------------------------
 
@@ -48,6 +48,16 @@ cdef np.float32_t sign(np.float32_t x):
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
+cdef np.float32_t abs(np.float32_t x):
+    if x < 0.0:
+        return -1.0*x
+
+    return x
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(True)
 cdef np.float32_t __compute_lambda(np.ndarray[np.float32_t, ndim=1] _sigma, Py_ssize_t n, np.float32_t l):
     cdef np.float32_t[::1] sigma = _sigma
     cdef np.float32_t r = 0.0
@@ -62,7 +72,7 @@ cdef np.float32_t __compute_lambda(np.ndarray[np.float32_t, ndim=1] _sigma, Py_s
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, _data_old, _grad, _nu, _sigma, np.ndarray[np.uint8_t, ndim=1] _exclude, Py_ssize_t n, q):
+cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, _data_old, _grad, _nu, _sigma, np.ndarray[np.npy_bool, ndim=1] _exclude, Py_ssize_t n, q, bint unorthodox):
     cdef np.float32_t[::1] data     = _data
     cdef np.float32_t[::1] data_old = _data_old
     cdef np.float32_t[::1] grad     = _grad
@@ -96,12 +106,10 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
     # Partially sort sigma to find the q-th largest value
     _sigma.partition(-q)
     # Get q-th largest value
-    l = sigma[n-q]
+    l = sigma[<Py_ssize_t>(n-q)]
     # Get next smaller element
     l = __compute_lambda(_sigma, n, l)
 
-    # Smallest value
-    v = -1.0
     # Update weights
     for i in range(n):
         if nu[i] == 0.0:
@@ -115,18 +123,28 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
             data[i] = 0.0
             continue
         # Apply proximal operator
-        data[i] = sign(data[i])*(abs(data[i]) - l*nu[i])
+        if unorthodox:
+            # Incorrect version that seems to work better
+            data[i] = sign(data[i])*abs(data[i] - l*nu[i])
+        else:
+            # Correct version of the proximal operator
+            data[i] = sign(data[i])*(abs(data[i]) - l*nu[i])
         # Count number of non-zero parameters
         k += 1
-        # Record smallest absolute value
-        if v == -1.0 or abs(data[i]) < v:
-            v = abs(data[i])
         # Exclude this in future steps
         if exclude is not None:
             exclude[i] = True
 
-    # Fix issue when data contains multiple identical elements
-    if k > q:
+    # Fix number of features when there are multiple equal
+    # values or in case of numerical instability
+    while k > q:
+        # Smallest value
+        v = -1.0
+        # Record smallest absolute value
+        for i in range(n):
+            if v == -1.0 or abs(data[i]) < v:
+                v = abs(data[i])
+        # Set smallest values to zero
         for i in range(n):
             # Identify smallest elements in data
             if abs(data[i]) == v:
@@ -141,6 +159,8 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
                 if k == q:
                     break
 
+    assert k == q, f'Invalid number of features: selected {k} features istead of {q}'
+
     return l
 
 ## Wrapper
@@ -150,5 +170,5 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-def _leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, q) -> np.float32_t:
-    return __leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, data.shape[0], q)
+def _leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, q, unorthodox=False) -> np.float32_t:
+    return __leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, data.shape[0], q, unorthodox)
