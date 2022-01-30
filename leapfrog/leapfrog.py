@@ -61,7 +61,7 @@ class Linear(torch.nn.Module):
     def __init__(self, in_features: int, out_features: int, q: int, unique=False, weight_decay=None, proxop=None, bias=True):
         super().__init__()
         self.module        = torch.nn.Linear(in_features, out_features, bias=bias)
-        self.module.weight = Parameter(self.module.weight, q, unique=unique, weight_decay=weight_decay, proxop=None)
+        self.module.weight = Parameter(self.module.weight, q, unique=unique, weight_decay=weight_decay, proxop=proxop)
     def forward(self, *args, **kwargs):
         # Simply forward and args and kwargs to module
         return self.module(*args, **kwargs)
