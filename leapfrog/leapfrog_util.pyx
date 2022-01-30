@@ -31,6 +31,7 @@ from libc.math cimport isnan, isinf
 
 np.import_array()
 
+## Utility
 ## ----------------------------------------------------------------------------
 
 @cython.boundscheck(False)
@@ -68,11 +69,38 @@ cdef np.float32_t __compute_lambda(np.ndarray[np.float32_t, ndim=1] _sigma, Py_s
 
     return r
 
+## Proximal operators
+## ----------------------------------------------------------------------------
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, _data_old, _grad, _nu, _sigma, np.ndarray[np.npy_bool, ndim=1] _exclude, Py_ssize_t n, q, bint unorthodox):
+cdef np.float32_t proxop_std(np.float32_t x, np.float32_t step):
+    return sign(x)*(abs(x) - step)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(True)
+cdef np.float32_t proxop_unorthodox(np.float32_t x, np.float32_t step):
+    return sign(x)*abs(x - step)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(True)
+cdef np.float32_t proxop_refit(np.float32_t x, np.float32_t step):
+    return x
+
+## Leapfrog regularization
+## ----------------------------------------------------------------------------
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(True)
+cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, _data_old, _grad, _nu, _sigma, np.ndarray[np.npy_bool, ndim=1] _exclude, Py_ssize_t n, q, np.float32_t (*proxop)(np.float32_t, np.float32_t)):
     cdef np.float32_t[::1] data     = _data
     cdef np.float32_t[::1] data_old = _data_old
     cdef np.float32_t[::1] grad     = _grad
@@ -123,12 +151,7 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
             data[i] = 0.0
             continue
         # Apply proximal operator
-        if unorthodox:
-            # Incorrect version that seems to work better
-            data[i] = sign(data[i])*abs(data[i] - l*nu[i])
-        else:
-            # Correct version of the proximal operator
-            data[i] = sign(data[i])*(abs(data[i]) - l*nu[i])
+        data[i] = proxop(data[i], l*nu[i])
         # Count number of non-zero parameters
         k += 1
         # Exclude this in future steps
@@ -163,12 +186,22 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
 
     return l
 
-## Wrapper
+## Entry point
 ## ----------------------------------------------------------------------------
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-def _leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, q, unorthodox=False) -> np.float32_t:
-    return __leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, data.shape[0], q, unorthodox)
+def _leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, q, proxop_name = None) -> np.float32_t:
+    proxop = proxop_std
+    if proxop_name is None or proxop_name == "standard":
+        proxop = proxop_std
+    elif proxop_name == "unorthodox":
+        proxop = proxop_unorthodox
+    elif proxop_name == "refit":
+        proxop = proxop_refit
+    else:
+        raise ValueError("Invalid proximal operator")
+
+    return __leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, data.shape[0], q, proxop)

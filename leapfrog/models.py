@@ -42,11 +42,11 @@ class LogisticModel(torch.nn.Module):
 ## ----------------------------------------------------------------------------
 
 class LeapfrogNeuralModel(torch.nn.Module):
-    def __init__(self, p, q, ks, q_steps=[None], activation=torch.nn.ELU(), weight_decay=None, batch_normalization=False, dropout=None, skip_connections=False, unorthodox=False):
+    def __init__(self, p, q, ks, q_steps=[None], activation=torch.nn.ELU(), weight_decay=None, batch_normalization=False, dropout=None, skip_connections=False, proxop=None):
         torch     .manual_seed(1)
         torch.cuda.manual_seed(1)
         super(LeapfrogNeuralModel, self).__init__()
-        self.linear_lf   = lf.Linear(p, q, q_steps+[1], unique=True, weight_decay=weight_decay, unorthodox=unorthodox)
+        self.linear_lf   = lf.Linear(p, q, q_steps+[1], unique=True, weight_decay=weight_decay, proxop=proxop)
         self.linear      = []
         self.batchnorm   = []
         self.linear_in   = torch.nn.Linear(q, ks[0])
