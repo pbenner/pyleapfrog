@@ -104,6 +104,9 @@ class Optimizer():
                 if isinstance(parameters, Parameter):
                     if parameters.exclude is not None:
                         parameters.exclude.fill(False)
+                    # synchronize cuda
+                    if parameters.data.is_cuda:
+                        torch.cuda.synchronize(device=parameters.data.device)
                     for i in range(0, parameters.data.size(0)):
                         self._leapfrog_regularize(parameters, i)
 
@@ -115,15 +118,20 @@ class Optimizer():
             if parameters.q[0] < 0 or parameters.q[0] >= parameters.data[i].size(0):
                 # do not regularize
                 return
-        parameters.weight_decay[i] = _leapfrog_regularize(
-            parameters.data    [i].numpy(),
-            parameters.data_old[i].numpy(),
-            parameters.grad    [i].numpy(),
+        # make a copy of the parameters (if using GPUs)...
+        param = parameters.data[i].cpu()
+        # update parameters
+        parameters.weight_decay[i] = _leapfrog_regularize(param.numpy(),
+            parameters.data_old[i].cpu().numpy(),
+            parameters.grad    [i].cpu().numpy(),
             parameters.nu,
             parameters.sigma,
             parameters.exclude,
             parameters.q[0],
             parameters.proxop)
+        # copy result back
+        if parameters.data[i].is_cuda:
+            parameters.data[i].copy_(param)
 
     def converged(self, loss):
         converged = False
