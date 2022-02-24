@@ -182,7 +182,7 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
                 if k == q:
                     break
 
-    assert k == q, f'Invalid number of features: selected {k} features istead of {q}'
+    assert k == q, f'Invalid number of features: selected {k} features instead of {q}'
 
     return l
 
