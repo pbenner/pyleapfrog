@@ -20,6 +20,6 @@ setup(name='leapfrog',
       install_requires=['torch', 'numpy'],
       python_requires='>3.6',
       ext_modules = cythonize([
-          Extension('leapfrog_util', sources=["leapfrog/leapfrog_util.pyx"], include_dirs=[np.get_include()], define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')])
+          Extension('leapfrog_util', sources=["leapfrog/leapfrog_core.pyx"], include_dirs=[np.get_include()], define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')])
       ], compiler_directives={'language_level' : "3"})
       )

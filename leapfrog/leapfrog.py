@@ -25,7 +25,7 @@ from typing import List
 
 ## ----------------------------------------------------------------------------
 
-from leapfrog_util import _leapfrog_regularize
+from leapfrog_core import _leapfrog_regularize
 
 ## Leapfrog parameters
 ## ----------------------------------------------------------------------------
