@@ -50,13 +50,13 @@ class LogisticModel(torch.nn.Module):
 ## ----------------------------------------------------------------------------
 
 class LeapfrogModel(torch.nn.Module):
-    def __init__(self, p, q, ks, q_steps=[], weight_decay=None, skip_connections=False, proxop=None, activation=torch.nn.LeakyReLU(), seed=None):
+    def __init__(self, p, q, ks, q_steps=[], weight_decay=None, skip_connections=False, proxop=None, activation=torch.nn.LeakyReLU(), debug=0, seed=None):
         if seed is not None:
             torch     .manual_seed(seed)
             torch.cuda.manual_seed(seed)
         super(LeapfrogModel, self).__init__()
         self.linear      = []
-        self.linear_in   = Linear(p, ks[0], q_steps+[q], independent=False, unique=False, weight_decay=weight_decay, proxop=proxop)
+        self.linear_in   = Linear(p, ks[0], q_steps+[q], independent=False, unique=False, weight_decay=weight_decay, proxop=proxop, debug=debug)
         self.linear_out  = torch.nn.Linear(ks[-1], 1)
         self.activation  = activation
         for i in range(len(ks)-1):
@@ -95,12 +95,12 @@ class LeapfrogModel(torch.nn.Module):
 ## ----------------------------------------------------------------------------
 
 class LeapfrogIndependentModel(torch.nn.Module):
-    def __init__(self, p, q, ks, q_steps=[], weight_decay=None, skip_connections=False, proxop=None, activation=torch.nn.LeakyReLU(), seed=None):
+    def __init__(self, p, q, ks, q_steps=[], weight_decay=None, skip_connections=False, proxop=None, activation=torch.nn.LeakyReLU(), debug=0, seed=None):
         if seed is not None:
             torch     .manual_seed(seed)
             torch.cuda.manual_seed(seed)
         super(LeapfrogIndependentModel, self).__init__()
-        self.linear_lf   = Linear(p, q, q_steps+[1], independent=True, unique=True, weight_decay=weight_decay, proxop=proxop)
+        self.linear_lf   = Linear(p, q, q_steps+[1], independent=True, unique=True, weight_decay=weight_decay, proxop=proxop, debug=debug)
         self.linear      = []
         self.linear_in   = torch.nn.Linear(q, ks[0])
         self.linear_out  = torch.nn.Linear(ks[-1], 1)
@@ -141,12 +141,12 @@ class LeapfrogIndependentModel(torch.nn.Module):
 ## ----------------------------------------------------------------------------
 
 class LeapfrogRepeatModel(torch.nn.Module):
-    def __init__(self, p, q, ks, q_steps=[], weight_decay=None, skip_connections=False, activation=torch.nn.LeakyReLU(), seed=None):
+    def __init__(self, p, q, ks, q_steps=[], weight_decay=None, skip_connections=False, activation=torch.nn.LeakyReLU(), debug=0, seed=None):
         if seed is not None:
             torch     .manual_seed(seed)
             torch.cuda.manual_seed(seed)
         super(LeapfrogRepeatModel, self).__init__()
-        self.linear_lf   = Linear(p, 1, q_steps+[q], independent=False, unique=False, weight_decay=weight_decay)
+        self.linear_lf   = Linear(p, 1, q_steps+[q], independent=False, unique=False, weight_decay=weight_decay, debug=debug)
         self.linear_lf_k = ks[0]
         self.linear      = []
         self.linear_out  = torch.nn.Linear(ks[-1], 1)

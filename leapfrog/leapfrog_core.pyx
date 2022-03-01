@@ -100,7 +100,7 @@ cdef np.float32_t proxop_refit(np.float32_t x, np.float32_t step):
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, _data_old, _grad, _nu, _sigma, np.ndarray[np.npy_bool, ndim=1] _exclude, Py_ssize_t n, q, np.float32_t (*proxop)(np.float32_t, np.float32_t)):
+cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, _data_old, _grad, _nu, _sigma, np.ndarray[np.npy_bool, ndim=1] _exclude, Py_ssize_t n, q, np.float32_t (*proxop)(np.float32_t, np.float32_t), int debug):
     cdef np.float32_t[::1] data     = _data
     cdef np.float32_t[::1] data_old = _data_old
     cdef np.float32_t[::1] grad     = _grad
@@ -182,7 +182,8 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
                 if k == q:
                     break
 
-    assert k == q, f'Invalid number of features: selected {k} features instead of {q}'
+    if debug > 0:
+        assert k == q, f'Invalid number of features: selected {k} features instead of {q}'
 
     return l
 
@@ -193,7 +194,7 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-def _leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, q, proxop_name = None) -> np.float32_t:
+def _leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, q, proxop_name = None, debug = 0) -> np.float32_t:
     proxop = proxop_std
     if proxop_name is None or proxop_name == "standard":
         proxop = proxop_std
@@ -204,4 +205,4 @@ def _leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, q, proxop_nam
     else:
         raise ValueError("Invalid proximal operator")
 
-    return __leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, data.shape[0], q, proxop)
+    return __leapfrog_regularize(data, data_old, grad, nu, sigma, exclude, data.shape[0], q, proxop, debug)

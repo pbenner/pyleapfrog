@@ -31,7 +31,7 @@ from leapfrog_core import _leapfrog_regularize
 ## ----------------------------------------------------------------------------
 
 class Parameter(torch.nn.Parameter):
-    def __new__(cls, data, q: List[int], independent=True, unique=False, weight_decay=None, proxop=None):
+    def __new__(cls, data, q: List[int], independent=True, unique=False, weight_decay=None, proxop=None, debug=0):
         if q is not None and len(q) == 0:
             raise ValueError
         if q is None and weight_decay is None:
@@ -45,6 +45,7 @@ class Parameter(torch.nn.Parameter):
         x.data_old    = torch.zeros (x.shape)
         x.proxop      = proxop
         x.independent = independent
+        x.debug       = debug
         if independent:
             x.nu    = np.zeros(x.shape[1], dtype=np.float32)
             x.sigma = np.zeros(x.shape[1], dtype=np.float32)
@@ -101,7 +102,8 @@ class Parameter(torch.nn.Parameter):
             self.sigma,
             self.exclude,
             self.q[0],
-            self.proxop)
+            self.proxop,
+            self.debug)
         # copy result back
         if self.data[i].is_cuda:
             self.data[i].copy_(data)
@@ -127,7 +129,8 @@ class Parameter(torch.nn.Parameter):
             self.sigma,
             self.exclude,
             self.q[0],
-            self.proxop)
+            self.proxop,
+            self.debug)
         # copy result back
         if self.data.is_cuda:
             self.data.copy_(data)
@@ -136,10 +139,10 @@ class Parameter(torch.nn.Parameter):
 ## ----------------------------------------------------------------------------
 
 class Linear(torch.nn.Module):
-    def __init__(self, in_features: int, out_features: int, q: int, independent=True, unique=False, weight_decay=None, proxop=None, bias=True):
+    def __init__(self, in_features: int, out_features: int, q: int, independent=True, unique=False, weight_decay=None, proxop=None, bias=True, debug=0):
         super().__init__()
         self.module        = torch.nn.Linear(in_features, out_features, bias=bias)
-        self.module.weight = Parameter(self.module.weight, q, independent=independent, unique=unique, weight_decay=weight_decay, proxop=proxop)
+        self.module.weight = Parameter(self.module.weight, q, independent=independent, unique=unique, weight_decay=weight_decay, proxop=proxop, debug=debug)
     def forward(self, *args, **kwargs):
         # Simply forward and args and kwargs to module
         return self.module(*args, **kwargs)
@@ -148,13 +151,6 @@ class Linear(torch.nn.Module):
 
 ## Leapfrog optimizer
 ## ----------------------------------------------------------------------------
-
-def one_smaller(a: torch.Tensor, max):
-    r = 0.0
-    for value in a:
-        if value > r and value < max:
-            r = value
-    return value
 
 class Optimizer():
     def __init__(self, optimizer, tolerance=1e-4):
