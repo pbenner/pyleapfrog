@@ -57,9 +57,12 @@ class LeapfrogTuner:
         models   = []
 
         # Test parameters with k-fold cross-validation
-        for _, (i_train, i_test) in enumerate(
+        for i, (i_train, i_test) in enumerate(
             KFold(n_splits=self.n_splits, shuffle=True, random_state=43).split(X, y=y)
         ):
+            if self.verbose:
+                print(f'Testing configuration [{parameters}] in CV step {i+1} / {self.n_splits}')
+
             X_train = X[i_train,:]
             y_train = y[i_train]
             X_test  = X[i_test,:]
