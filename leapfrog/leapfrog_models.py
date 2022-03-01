@@ -40,6 +40,12 @@ class LogisticModel(torch.nn.Module):
         x = torch.sigmoid(x)
         return x
 
+    def predict(self, X, device=None):
+        X = torch.tensor(X, dtype=torch.float32, device=device)
+        with torch.no_grad():
+            y_hat = torch.flatten(self(X))
+        return y_hat.cpu().numpy()
+
 ## Leapfrog neural network
 ## ----------------------------------------------------------------------------
 
@@ -79,7 +85,7 @@ class LeapfrogModel(torch.nn.Module):
         return y_hat.cpu().numpy()
 
     def to(self, *args, **kwargs):
-        self = super() .to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
         # super().to() doesn't recognize lists of parameters... 
         for i, _ in enumerate(self.linear):
             self.linear[i] = self.linear[i].to(*args, **kwargs)
@@ -125,7 +131,7 @@ class LeapfrogIndependentModel(torch.nn.Module):
         return y_hat.cpu().numpy()
 
     def to(self, *args, **kwargs):
-        self = super() .to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
         # super().to() doesn't recognize lists of parameters... 
         for i, _ in enumerate(self.linear):
             self.linear[i] = self.linear[i].to(*args, **kwargs)
@@ -171,7 +177,7 @@ class LeapfrogRepeatModel(torch.nn.Module):
         return y_hat.cpu().numpy()
 
     def to(self, *args, **kwargs):
-        self = super() .to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
         # super().to() doesn't recognize lists of parameters... 
         for i, _ in enumerate(self.linear):
             self.linear[i] = self.linear[i].to(*args, **kwargs)
