@@ -47,7 +47,7 @@ class LeapfrogTrainer:
         self.loss_function = loss_function
 
     def fit(self, X, y, **kwargs):
-        self(X, y, **kwargs)
+        return self(X, y, **kwargs)
 
     def __call__(self, X, y):
 
