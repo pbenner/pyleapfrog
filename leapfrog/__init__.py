@@ -19,3 +19,6 @@
 ## SOFTWARE.
 
 from .leapfrog import *
+from .leapfrog_models  import *
+from .leapfrog_tuner   import *
+from .leapfrog_trainer import *
