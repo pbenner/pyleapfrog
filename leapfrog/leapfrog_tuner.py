@@ -68,11 +68,9 @@ class LeapfrogTuner:
             model = self.get_model(parameters)
             model.fit(X_train, y_train, **kwargs)
 
-            y_hat = model.predict(X_test)
-            # Save performance
-            mae_fold.append(np.sum(np.abs(y_hat - y_test))/len(y_hat))
+            err = model.evaluate(X_test, y_test)
             # Save model
-            models  .append(model)
+            models.append(err)
 
         return {'mae': np.mean(mae_fold), 'models': models}
 

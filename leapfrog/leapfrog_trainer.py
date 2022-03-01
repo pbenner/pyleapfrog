@@ -30,7 +30,7 @@ from .leapfrog import Optimizer
 ## ----------------------------------------------------------------------------
 
 class LeapfrogTrainer:
-    def __init__(self, model, epochs=10000, lr=0.001, patience=7, warm_up_steps=100, val_size=0.0, weight_decay=0.0, optimizer=torch.optim.Adam, shuffle=True, batch_size=None, verbose=False, device=None):
+    def __init__(self, model, epochs=10000, lr=0.001, patience=7, warm_up_steps=100, val_size=0.0, weight_decay=0.0, loss_function=torch.nn.L1Loss(), optimizer=torch.optim.Adam, shuffle=True, batch_size=None, verbose=False, device=None):
 
         self.model         = model
         self.epochs        = epochs
@@ -44,11 +44,12 @@ class LeapfrogTrainer:
         self.verbose       = verbose
         self.optimizer     = optimizer
         self.device        = device
+        self.loss_function = loss_function
 
     def fit(self, X, y, **kwargs):
         self(X, y, **kwargs)
 
-    def __call__(self, X, y, loss_function=torch.nn.L1Loss()):
+    def __call__(self, X, y):
 
         optimizer = self._get_optimizer()
 
@@ -98,6 +99,7 @@ class LeapfrogTrainer:
 
         for _epoch in range(0, self.epochs):
             if self.verbose:
+                print(f'\nTraining epoch: {_epoch}')
                 print(f'Final target: {final_target}')
             loss_sum = 0.0
             loss_n   = 0.0
@@ -109,7 +111,7 @@ class LeapfrogTrainer:
                 # Evaluate model
                 y_hat = torch.flatten(self.model(X_batch))
                 # Compute loss
-                loss = loss_function(y_hat, y_batch)
+                loss = self.loss_function(y_hat, y_batch)
                 # Backpropagate gradient
                 loss.backward()
                 # Perform one gradient descent step
@@ -143,13 +145,13 @@ class LeapfrogTrainer:
             else:
                 with torch.no_grad():
                     outputs = torch.flatten(self.model(X_val))
-                    loss_val = loss_function(outputs, y_val).item()
+                    loss_val = self.loss_function(outputs, y_val).item()
                 # Record validation loss
                 hist_val.append(loss_val)
 
             # If verbose print validation loss
             if self.verbose:
-                print(f'Loss val  : {loss_val}\n')
+                print(f'Loss val  : {loss_val}')
             # Check EarlyStopping
             if es(loss_val, self.model):
                 if final_target:
@@ -188,3 +190,10 @@ class LeapfrogTrainer:
 
     def predict(self, X):
         return self.model.predict(X, device=self.device)
+
+    def evaluate(self, X, y):
+        y_hat = self.predict(X)
+        y_hat = torch.tensor(y_hat, dtype=torch.float32)
+        y     = torch.tensor(y    , dtype=torch.float32)
+        return self.loss_function(y, y_hat).item()
+
