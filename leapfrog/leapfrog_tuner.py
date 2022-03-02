@@ -37,14 +37,16 @@ class LeapfrogTuner:
         self.refit      = refit
 
     def fit(self, X, y, **kwargs):
-        with Pool(self.n_jobs) as p:
-            r = p.map(lambda param: self._fit_cv(X, y, param, **kwargs), self.parameters)
-        # extract performances
-        mae = [ d['mae'] for d in r]
-        # Get best parameters
-        k = np.argmin(mae)
         if self.verbose:
-            print(f'mae={mae} => selecting parameters: {k}={self.parameters[k]}')
+            print(f'Testing >> {len(self.parameters)} << configurations in >> {self.n_splits} <<-fold CV:')
+        with Pool(self.n_jobs) as p:
+            r = p.map(lambda i: self._fit_cv(X, y, i, **kwargs), range(len(self.parameters)))
+        # extract performances
+        error = [ d['error'] for d in r]
+        # Get best parameters
+        k = np.argmin(error)
+        if self.verbose:
+            print(f'=> Errors >> {error} << => Selecting configuration {k}')
         if self.refit:
             # Fit model on full data
             self.model = self.get_model(X.shape[1], self.parameters[k])
@@ -52,31 +54,31 @@ class LeapfrogTuner:
         else:
             self.model = r[k]['models']
 
-    def _fit_cv(self, X, y, parameters, **kwargs):
-        mae_fold = []
-        models   = []
+    def _fit_cv(self, X, y, i, **kwargs):
+        error_fold = []
+        models     = []
 
         # Test parameters with k-fold cross-validation
         for i, (i_train, i_test) in enumerate(
             KFold(n_splits=self.n_splits, shuffle=True, random_state=43).split(X, y=y)
         ):
             if self.verbose:
-                print(f'Testing configuration [{parameters}] in CV step {i+1} / {self.n_splits}')
+                print(f'=> Testing configuration >> {i+1} / {len(self.parameters)} << in CV step >> {i+1} / {self.n_splits} <<')
 
             X_train = X[i_train,:]
             y_train = y[i_train]
             X_test  = X[i_test,:]
             y_test  = y[i_test]
 
-            model = self.get_model(parameters)
+            model = self.get_model(self.parameters[i])
             model.fit(X_train, y_train, **kwargs)
 
             # Save model error
-            mae_fold.append(model.evaluate(X_test, y_test))
+            error_fold.append(model.evaluate(X_test, y_test))
             # Save model
             models.append(model)
 
-        return {'mae': np.mean(mae_fold), 'models': models}
+        return {'error': np.mean(error_fold), 'models': models}
 
     def predict(self, *args, **kwargs):
         if self.refit:

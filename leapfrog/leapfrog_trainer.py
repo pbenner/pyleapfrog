@@ -49,7 +49,9 @@ class LeapfrogTrainer:
     def fit(self, X, y, **kwargs):
         return self(X, y, **kwargs)
 
-    def __call__(self, X, y):
+    def __call__(self, X, y, X_val=None, y_val=None):
+
+        assert (X_val is None and y_val is None) or (X_val is not None and y_val is not None), f'ERROR: X_val and y_val should either be None or filled with plenty of beautiful data!'
 
         optimizer = self._get_optimizer()
 
