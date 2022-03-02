@@ -46,7 +46,7 @@ class LeapfrogTuner:
         # Get best parameters
         k = np.argmin(error)
         if self.verbose:
-            print(f'=> Errors >> {error} << => Selecting configuration {k}')
+            print(f'=> Errors >> {error} << => Selecting configuration {k+1}')
         if self.refit:
             # Fit model on full data
             self.model = self.get_model(X.shape[1], self.parameters[k])
