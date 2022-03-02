@@ -79,6 +79,9 @@ class LeapfrogTrainer:
         else:
             X_train = torch.tensor(X, dtype=torch.float32)
             y_train = torch.tensor(y, dtype=torch.float32)
+            if self.device is not None:
+                X_train = X_train.to(self.device)
+                y_train = y_train.to(self.device)
             # If no validation data is given, use training data for validation
             if X_val is None:
                 X_val = X_train
@@ -86,10 +89,9 @@ class LeapfrogTrainer:
             else:
                 X_val = torch.tensor(X_val, dtype=torch.float32)
                 y_val = torch.tensor(y_val, dtype=torch.float32)
-
-            if self.device is not None:
-                X_train = X_train.to(self.device)
-                y_train = y_train.to(self.device)
+                if self.device is not None:
+                    X_val = X_val.to(self.device)
+                    y_val = y_val.to(self.device)
 
         if self.device is not None:
             self.model = self.model.to(self.device)
