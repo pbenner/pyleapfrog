@@ -52,7 +52,12 @@ class LeapfrogTrainer:
 
     def __call__(self, X, y, X_val=None, y_val=None):
 
-        assert (X_val is None and y_val is None) or (X_val is not None and y_val is not None), f'ERROR: X_val and y_val should either be None or filled with plenty of beautiful data!'
+        if self.val_size > 0.0:
+            assert X_val is None and y_val is None, f'val_size is non-zero and X_val / y_val are given'
+        if X_val is None:
+            assert y_val is None, f'X_val is None but y_val is not'
+        if X_val is not None:
+            assert y_val is not None, f'X_val filled with plenty of beautiful data, but y_val is None'
 
         optimizer = self._get_optimizer()
 
