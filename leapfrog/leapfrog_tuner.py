@@ -43,8 +43,8 @@ class LeapfrogTuner:
         if self.verbose:
             print(f'Testing >> {len(self.parameters)} << configurations in >> {self.n_splits} <<-fold CV:')
             sys.stdout.flush()
-        with Pool(self.n_jobs) as p:
-            r = p.map(lambda i: self._fit_cv(X, y, i, **kwargs), range(len(self.parameters)))
+        with Pool(self.n_jobs) as pool:
+            r = pool.map(lambda i: self._fit_cv(X, y, i, **kwargs), range(len(self.parameters)))
         # extract performances
         error = [ d['error'] for d in r]
         # Get best parameters
@@ -60,13 +60,11 @@ class LeapfrogTuner:
             self.model = r[k]['models']
 
     def _fit_cv(self, X, y, k, **kwargs):
-        error_fold = []
-        models     = []
+        # This function processes one CV-fold
+        def process_fold(x):
+            # Unravel parameters
+            (i, (i_train, i_test)) = x
 
-        # Test parameters with k-fold cross-validation
-        for i, (i_train, i_test) in enumerate(
-            KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state).split(X, y=y)
-        ):
             if self.verbose:
                 print(f'=> Testing configuration >> {k+1} / {len(self.parameters)} << in CV step >> {i+1} / {self.n_splits} <<')
                 sys.stdout.flush()
@@ -82,12 +80,16 @@ class LeapfrogTuner:
             else:
                 model.fit(X_train, y_train, **kwargs)
 
-            # Save model error
-            error_fold.append(model.evaluate(X_test, y_test))
-            # Save model
-            models.append(model)
+            return model, model.evaluate(X_test, y_test)
 
-        return {'error': np.mean(error_fold), 'models': models}
+        # Process all CV-folds
+        result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state).split(X, y=y)))
+
+        # Split result
+        models = [ x[0] for x in result ]
+        errors = [ x[1] for x in result ]
+
+        return {'error': np.mean(errors), 'models': models}
 
     def predict(self, *args, **kwargs):
         if self.refit:
