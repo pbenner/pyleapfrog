@@ -84,6 +84,7 @@ class LeapfrogTuner:
 
         # Process all CV-folds
         result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state).split(X, y=y)))
+        result = list(result)
 
         # Split result
         models = [ x[0] for x in result ]
