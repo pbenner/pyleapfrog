@@ -27,14 +27,16 @@ from sklearn.model_selection import KFold
 ## ----------------------------------------------------------------------------
 
 class LeapfrogTuner:
-    def __init__(self, get_model, parameters, n_splits=10, n_jobs=10, refit=False, verbose=False):
-        self.get_model  = get_model
-        self.parameters = parameters
-        self.n_splits   = n_splits
-        self.model      = None
-        self.verbose    = verbose
-        self.n_jobs     = n_jobs
-        self.refit      = refit
+    def __init__(self, get_model, parameters, n_splits=10, n_jobs=10, refit=False, use_test_as_val=False, random_state=None, verbose=False):
+        self.get_model       = get_model
+        self.parameters      = parameters
+        self.n_splits        = n_splits
+        self.model           = None
+        self.n_jobs          = n_jobs
+        self.refit           = refit
+        self.random_state    = random_state
+        self.verbose         = verbose
+        self.use_test_as_val = use_test_as_val
 
     def fit(self, X, y, **kwargs):
         if self.verbose:
@@ -60,7 +62,7 @@ class LeapfrogTuner:
 
         # Test parameters with k-fold cross-validation
         for i, (i_train, i_test) in enumerate(
-            KFold(n_splits=self.n_splits, shuffle=True, random_state=43).split(X, y=y)
+            KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state).split(X, y=y)
         ):
             if self.verbose:
                 print(f'=> Testing configuration >> {i+1} / {len(self.parameters)} << in CV step >> {i+1} / {self.n_splits} <<')
@@ -71,7 +73,10 @@ class LeapfrogTuner:
             y_test  = y[i_test]
 
             model = self.get_model(self.parameters[i])
-            model.fit(X_train, y_train, **kwargs)
+            if self.use_test_as_val:
+                model.fit(X_train, y_train, X_val=X_test, y_val=y_test, **kwargs)
+            else:
+                model.fit(X_train, y_train, **kwargs)
 
             # Save model error
             error_fold.append(model.evaluate(X_test, y_test))
