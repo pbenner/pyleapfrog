@@ -18,6 +18,7 @@
 ## OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ## SOFTWARE.
 
+import sys
 import torch
 
 from torch.utils.data import DataLoader, TensorDataset
@@ -103,6 +104,7 @@ class LeapfrogTrainer:
             if self.verbose:
                 print(f'\nTraining epoch: {_epoch}')
                 print(f'Final target: {final_target}')
+                sys.stdout.flush()
             loss_sum = 0.0
             loss_n   = 0.0
             for _, data in enumerate(trainloader, 0):
@@ -125,6 +127,7 @@ class LeapfrogTrainer:
             loss_train = loss_sum / loss_n
             if self.verbose:
                 print(f'Loss train: {loss_train}')
+                sys.stdout.flush()
 
             # Record train loss
             hist_train.append(loss_train)
@@ -137,9 +140,11 @@ class LeapfrogTrainer:
                         final_target = True
                         if self.verbose:
                             print(f'Fitting final target')
+                            sys.stdout.flush()
                     else:
                         if self.verbose:
                             print(f'Fitting next target')
+                            sys.stdout.flush()
 
             # Get validation loss
             if X_train is X_val:
@@ -154,6 +159,7 @@ class LeapfrogTrainer:
             # If verbose print validation loss
             if self.verbose:
                 print(f'Loss val  : {loss_val}')
+                sys.stdout.flush()
             # Check EarlyStopping
             if es(loss_val, self.model):
                 if final_target:
@@ -165,12 +171,15 @@ class LeapfrogTrainer:
                             final_target = True
                             if self.verbose:
                                 print(f'Fitting final target')
+                                sys.stdout.flush()
                         else:
                             if self.verbose:
                                 print(f'Fitting next target')
+                                sys.stdout.flush()
 
         if self.verbose and _epoch == self.epochs-1:
             print(f'Maximum number of epochs reached')
+            sys.stdout.flush()
 
         self.model.load_state_dict(es.model)
 

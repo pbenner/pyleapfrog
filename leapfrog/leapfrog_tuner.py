@@ -19,6 +19,7 @@
 ## SOFTWARE.
 
 import numpy as np
+import sys
 
 from multiprocessing.pool import ThreadPool as Pool
 from sklearn.model_selection import KFold
@@ -41,6 +42,7 @@ class LeapfrogTuner:
     def fit(self, X, y, **kwargs):
         if self.verbose:
             print(f'Testing >> {len(self.parameters)} << configurations in >> {self.n_splits} <<-fold CV:')
+            sys.stdout.flush()
         with Pool(self.n_jobs) as p:
             r = p.map(lambda i: self._fit_cv(X, y, i, **kwargs), range(len(self.parameters)))
         # extract performances
@@ -49,6 +51,7 @@ class LeapfrogTuner:
         k = np.argmin(error)
         if self.verbose:
             print(f'=> Errors >> {error} << => Selecting configuration {k+1}')
+            sys.stdout.flush()
         if self.refit:
             # Fit model on full data
             self.model = self.get_model(X.shape[1], self.parameters[k])
@@ -66,6 +69,7 @@ class LeapfrogTuner:
         ):
             if self.verbose:
                 print(f'=> Testing configuration >> {i+1} / {len(self.parameters)} << in CV step >> {i+1} / {self.n_splits} <<')
+                sys.stdout.flush()
 
             X_train = X[i_train,:]
             y_train = y[i_train]
