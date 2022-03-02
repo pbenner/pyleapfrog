@@ -59,7 +59,7 @@ class LeapfrogTuner:
         else:
             self.model = r[k]['models']
 
-    def _fit_cv(self, X, y, i, **kwargs):
+    def _fit_cv(self, X, y, k, **kwargs):
         error_fold = []
         models     = []
 
@@ -68,7 +68,7 @@ class LeapfrogTuner:
             KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state).split(X, y=y)
         ):
             if self.verbose:
-                print(f'=> Testing configuration >> {i+1} / {len(self.parameters)} << in CV step >> {i+1} / {self.n_splits} <<')
+                print(f'=> Testing configuration >> {k+1} / {len(self.parameters)} << in CV step >> {i+1} / {self.n_splits} <<')
                 sys.stdout.flush()
 
             X_train = X[i_train,:]
@@ -76,7 +76,7 @@ class LeapfrogTuner:
             X_test  = X[i_test,:]
             y_test  = y[i_test]
 
-            model = self.get_model(self.parameters[i])
+            model = self.get_model(self.parameters[k])
             if self.use_test_as_val:
                 model.fit(X_train, y_train, X_val=X_test, y_val=y_test, **kwargs)
             else:
