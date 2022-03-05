@@ -210,6 +210,8 @@ class LeapfrogTrainer:
         return self.model.predict(X, device=self.device)
 
     def evaluate(self, X, y):
+        if len(y.shape) == 1:
+            y = y.reshape(-1, 1)
         y_hat = self.predict(X)
         y_hat = torch.tensor(y_hat, dtype=torch.float32)
         y     = torch.tensor(y    , dtype=torch.float32)

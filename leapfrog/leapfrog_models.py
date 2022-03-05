@@ -43,7 +43,7 @@ class LogisticModel(torch.nn.Module):
     def predict(self, X, device=None):
         X = torch.tensor(X, dtype=torch.float32, device=device)
         with torch.no_grad():
-            y_hat = torch.flatten(self(X))
+            y_hat = self(X)
         return y_hat.cpu().numpy()
 
 ## Leapfrog neural network
@@ -81,7 +81,7 @@ class LeapfrogModel(torch.nn.Module):
     def predict(self, X, device=None):
         X = torch.tensor(X, dtype=torch.float32, device=device)
         with torch.no_grad():
-            y_hat = torch.flatten(self(X))
+            y_hat = self(X)
         return y_hat.cpu().numpy()
 
     def to(self, *args, **kwargs):
@@ -127,7 +127,7 @@ class LeapfrogIndependentModel(torch.nn.Module):
     def predict(self, X, device=None):
         X = torch.tensor(X, dtype=torch.float32, device=device)
         with torch.no_grad():
-            y_hat = torch.flatten(self(X))
+            y_hat = self(X)
         return y_hat.cpu().numpy()
 
     def to(self, *args, **kwargs):
@@ -173,7 +173,7 @@ class LeapfrogRepeatModel(torch.nn.Module):
     def predict(self, X, device=None):
         X = torch.tensor(X, dtype=torch.float32, device=device)
         with torch.no_grad():
-            y_hat = torch.flatten(self(X))
+            y_hat = self(X)
         return y_hat.cpu().numpy()
 
     def to(self, *args, **kwargs):
