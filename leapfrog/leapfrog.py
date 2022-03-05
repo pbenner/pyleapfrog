@@ -95,14 +95,11 @@ class Parameter(torch.nn.Parameter):
                 # do not regularize
                 return
         # make a copy of the parameters (if using GPUs)...
-        data     = self.data    [i].cpu()
-        data_old = self.data_old[i].cpu()
-        grad     = self.grad    [i].cpu()
+        data     = self.data[i].cpu()
         # update parameters
-        self.weight_decay[i] = _leapfrog_regularize(
-            data    .numpy(),
-            data_old.numpy(),
-            grad    .numpy(),
+        self.weight_decay[i] = _leapfrog_regularize(data.numpy(),
+            self.data_old.numpy(),
+            self.grad.cpu().numpy(),
             self.nu,
             self.sigma,
             self.exclude,
@@ -122,14 +119,11 @@ class Parameter(torch.nn.Parameter):
                 # do not regularize
                 return
         # make a copy of the parameters (if using GPUs)...
-        data     = self.data    .cpu()
-        data_old = self.data_old.cpu()
-        grad     = self.grad    .cpu()
+        data = self.data.cpu()
         # update parameters
-        self.weight_decay = _leapfrog_regularize(
-            data    .flatten().numpy(),
-            data_old.flatten().numpy(),
-            grad    .flatten().numpy(),
+        self.weight_decay = _leapfrog_regularize(data.flatten().numpy(),
+            self.data_old.flatten().numpy(),
+            self.grad.cpu().flatten().numpy(),
             self.nu,
             self.sigma,
             self.exclude,
