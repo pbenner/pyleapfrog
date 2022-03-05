@@ -60,6 +60,13 @@ class LeapfrogTrainer:
             assert y_val is not None, f'X_val filled with plenty of beautiful data, but y_val is None'
         if device is None:
             device = self.device
+        # Bugfix when `TransformedTargetRegressor` is used, which
+        # flattens the target array
+        if len(y.shape) == 1:
+            y = y.reshape(-1, 1)
+        if y_val is not None:
+            if len(y_val.shape) == 1:
+                y_val = y_val.reshape(-1, 1)
 
         optimizer = self._get_optimizer()
 
@@ -122,7 +129,7 @@ class LeapfrogTrainer:
                 # Reset gradient
                 optimizer.zero_grad()
                 # Evaluate model
-                y_hat = torch.flatten(self.model(X_batch))
+                y_hat = self.model(X_batch)
                 # Compute loss
                 loss = self.loss_function(y_hat, y_batch)
                 # Backpropagate gradient
@@ -160,7 +167,7 @@ class LeapfrogTrainer:
                 loss_val = loss_train
             else:
                 with torch.no_grad():
-                    outputs = torch.flatten(self.model(X_val))
+                    outputs = self.model(X_val)
                     loss_val = self.loss_function(outputs, y_val).item()
                 # Record validation loss
                 hist_val.append(loss_val)
@@ -214,6 +221,8 @@ class LeapfrogTrainer:
         return self.model.predict(X, device=device)
 
     def evaluate(self, X, y, **kwargs):
+        # Bugfix when `TransformedTargetRegressor` is used, which
+        # flattens the target array
         if len(y.shape) == 1:
             y = y.reshape(-1, 1)
         y_hat = self.predict(X, **kwargs)
