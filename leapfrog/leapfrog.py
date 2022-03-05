@@ -62,7 +62,6 @@ class Parameter(torch.nn.Parameter):
             self.weight_decay = np.zeros(1, dtype=np.float32)
             self.exclude      = None
 
-
     def clone(self, *args, **kwargs): 
         return Parameter(self.data, self.q, independent=self.independent, unique=self.unique, proxop=self.proxop, debug=self.debug)
 
