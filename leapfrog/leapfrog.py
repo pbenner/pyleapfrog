@@ -31,42 +31,40 @@ from leapfrog_core import _leapfrog_regularize
 ## ----------------------------------------------------------------------------
 
 class Parameter(torch.nn.Parameter):
-    def __new__(cls, data, q: List[int], independent=True, unique=False, weight_decay=None, proxop=None, debug=0):
+    @staticmethod
+    def __new__(cls, data,  q, independent=True, unique=False, proxop=None, debug=0, *args, **kwargs):
+        return super().__new__(cls, data, *args, **kwargs)
+
+    def __init__(self, data, q, independent=True, unique=False, proxop=None, debug=0):
+        super().__init__()
         if q is not None and len(q) == 0:
             raise ValueError
-        if q is None and weight_decay is None:
+        if q is None:
             raise ValueError
-        if weight_decay is not None and len(weight_decay) != data.size(0):
-            raise ValueError("Weight decay ")
         if independent is False and unique is True:
             raise ValueError("Unsupported combination of arguments")
-        x = torch.nn.Parameter.__new__(cls, data=data)
-        x.q           = q
-        x.data_old    = torch.zeros (x.shape)
-        x.proxop      = proxop
-        x.independent = independent
-        x.debug       = debug
+        self.q           = q.copy()
+        self.data_old    = torch.zeros(self.shape)
+        self.proxop      = proxop
+        self.independent = independent
+        self.debug       = debug
         if independent:
-            x.nu    = np.zeros(x.shape[1], dtype=np.float32)
-            x.sigma = np.zeros(x.shape[1], dtype=np.float32)
-            if weight_decay is None:
-                x.weight_decay = np.zeros(data.size(0), dtype=np.float32)
-            else:
-                x.weight_decay = weight_decay
+            self.nu           = np.zeros(self.shape[1], dtype=np.float32)
+            self.sigma        = np.zeros(self.shape[1], dtype=np.float32)
+            self.weight_decay = np.zeros(self.shape[0], dtype=np.float32)
             if unique:
-                x.exclude = np.array(x.shape[1]*[False])
+                self.exclude = np.array(self.shape[1]*[False])
             else:
-                x.exclude = None
+                self.exclude = None
         else:
-            x.nu    = np.zeros(x.shape, dtype=np.float32).flatten()
-            x.sigma = np.zeros(x.shape, dtype=np.float32).flatten()
-            if weight_decay is None:
-                x.weight_decay = np.zeros(1, dtype=np.float32)
-            else:
-                x.weight_decay = weight_decay
-            x.exclude = None
+            self.nu           = np.zeros(self.shape, dtype=np.float32).flatten()
+            self.sigma        = np.zeros(self.shape, dtype=np.float32).flatten()
+            self.weight_decay = np.zeros(1, dtype=np.float32)
+            self.exclude      = None
 
-        return x
+
+    def clone(self, *args, **kwargs): 
+        return Parameter(self.data, self.q, independent=self.independent, unique=self.unique, proxop=self.proxop, debug=self.debug)
 
     def regularize(self):
         # initialize exclude tensor
@@ -139,10 +137,10 @@ class Parameter(torch.nn.Parameter):
 ## ----------------------------------------------------------------------------
 
 class Linear(torch.nn.Module):
-    def __init__(self, in_features: int, out_features: int, q: int, independent=True, unique=False, weight_decay=None, proxop=None, bias=True, debug=0):
+    def __init__(self, in_features: int, out_features: int, q: int, independent=True, unique=False, proxop=None, bias=True, debug=0):
         super().__init__()
         self.module        = torch.nn.Linear(in_features, out_features, bias=bias)
-        self.module.weight = Parameter(self.module.weight, q, independent=independent, unique=unique, weight_decay=weight_decay, proxop=proxop, debug=debug)
+        self.module.weight = Parameter(self.module.weight, q, independent=independent, unique=unique, proxop=proxop, debug=debug)
     def forward(self, *args, **kwargs):
         # Simply forward and args and kwargs to module
         return self.module(*args, **kwargs)
