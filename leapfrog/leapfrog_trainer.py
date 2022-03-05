@@ -50,7 +50,7 @@ class LeapfrogTrainer:
     def fit(self, X, y, **kwargs):
         return self(X, y, **kwargs)
 
-    def __call__(self, X, y, X_val=None, y_val=None):
+    def __call__(self, X, y, X_val=None, y_val=None, device=None):
 
         if self.val_size > 0.0:
             assert X_val is None and y_val is None, f'val_size is non-zero and X_val / y_val are given'
@@ -58,6 +58,8 @@ class LeapfrogTrainer:
             assert y_val is None, f'X_val is None but y_val is not'
         if X_val is not None:
             assert y_val is not None, f'X_val filled with plenty of beautiful data, but y_val is None'
+        if device is None:
+            device = self.device
 
         optimizer = self._get_optimizer()
 
@@ -72,16 +74,16 @@ class LeapfrogTrainer:
             y_train = torch.tensor(y_train, dtype=torch.float32)
             y_val   = torch.tensor(y_val  , dtype=torch.float32)
 
-            if self.device is not None:
-                X_train, X_val = X_train.to(self.device), X_val.to(self.device)
-                y_train, y_val = y_train.to(self.device), y_val.to(self.device)
+            if device is not None:
+                X_train, X_val = X_train.to(device), X_val.to(device)
+                y_train, y_val = y_train.to(device), y_val.to(device)
 
         else:
             X_train = torch.tensor(X, dtype=torch.float32)
             y_train = torch.tensor(y, dtype=torch.float32)
-            if self.device is not None:
-                X_train = X_train.to(self.device)
-                y_train = y_train.to(self.device)
+            if device is not None:
+                X_train = X_train.to(device)
+                y_train = y_train.to(device)
             # If no validation data is given, use training data for validation
             if X_val is None:
                 X_val = X_train
@@ -89,12 +91,12 @@ class LeapfrogTrainer:
             else:
                 X_val = torch.tensor(X_val, dtype=torch.float32)
                 y_val = torch.tensor(y_val, dtype=torch.float32)
-                if self.device is not None:
-                    X_val = X_val.to(self.device)
-                    y_val = y_val.to(self.device)
+                if device is not None:
+                    X_val = X_val.to(device)
+                    y_val = y_val.to(device)
 
-        if self.device is not None:
-            self.model = self.model.to(self.device)
+        if device is not None:
+            self.model = self.model.to(device)
 
         if self.batch_size is None:
             self.batch_size = int(X_train.shape[0])
@@ -206,13 +208,15 @@ class LeapfrogTrainer:
     def get_model(self):
         return self.model
 
-    def predict(self, X):
-        return self.model.predict(X, device=self.device)
+    def predict(self, X, device=None):
+        if device is None:
+            device = self.device
+        return self.model.predict(X, device=device)
 
-    def evaluate(self, X, y):
+    def evaluate(self, X, y, **kwargs):
         if len(y.shape) == 1:
             y = y.reshape(-1, 1)
-        y_hat = self.predict(X)
+        y_hat = self.predict(X, **kwargs)
         y_hat = torch.tensor(y_hat, dtype=torch.float32)
         y     = torch.tensor(y    , dtype=torch.float32)
         return self.loss_function(y, y_hat).item()

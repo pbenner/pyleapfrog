@@ -28,7 +28,7 @@ from sklearn.model_selection import KFold
 ## ----------------------------------------------------------------------------
 
 class LeapfrogTuner:
-    def __init__(self, get_model, parameters, n_splits=10, n_jobs=10, refit=False, use_test_as_val=False, random_state=None, verbose=False):
+    def __init__(self, get_model, parameters, n_splits=10, n_jobs=10, refit=False, use_test_as_val=False, random_state=None, device=None, verbose=False):
         self.get_model       = get_model
         self.parameters      = parameters
         self.n_splits        = n_splits
@@ -36,6 +36,7 @@ class LeapfrogTuner:
         self.n_jobs          = n_jobs
         self.refit           = refit
         self.random_state    = random_state
+        self.device          = device
         self.verbose         = verbose
         self.use_test_as_val = use_test_as_val
 
@@ -68,6 +69,14 @@ class LeapfrogTuner:
             if self.verbose:
                 print(f'=> Testing configuration >> {k+1} / {len(self.parameters)} << in CV step >> {i+1} / {self.n_splits} <<')
                 sys.stdout.flush()
+
+            # Set device for training. If self.device is a list, select
+            # the k-th device for training
+            if type(self.device) == list:
+                kwargs['device'] = self.device[k % len(self.device)]
+            else:
+                if self.device is not None:
+                    kwargs['device'] = self.device
 
             X_train = X[i_train,:]
             y_train = y[i_train]
