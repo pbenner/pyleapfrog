@@ -65,6 +65,14 @@ class Parameter(torch.nn.Parameter):
     def clone(self, *args, **kwargs): 
         return Parameter(self.data, self.q, independent=self.independent, unique=self.unique, proxop=self.proxop, debug=self.debug)
 
+    def __deepcopy__(self, memo):
+        if id(self) in memo:
+            return memo[id(self)]
+        else:
+            result = self.data.clone()
+            memo[id(self)] = result
+            return result
+
     def regularize(self):
         # initialize exclude tensor
         if self.exclude is not None:
