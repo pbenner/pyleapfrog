@@ -86,8 +86,8 @@ class LeapfrogTrainer:
                 y_train, y_val = y_train.to(device), y_val.to(device)
 
         else:
-            X_train = torch.tensor(X_train, dtype=torch.float32)
-            y_train = torch.tensor(y_train, dtype=torch.float32)
+            X_train = torch.tensor(X, dtype=torch.float32)
+            y_train = torch.tensor(y, dtype=torch.float32)
             if device is not None:
                 X_train = X_train.to(device)
                 y_train = y_train.to(device)
