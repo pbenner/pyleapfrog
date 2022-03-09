@@ -31,7 +31,7 @@ from .leapfrog import Optimizer
 ## ----------------------------------------------------------------------------
 
 class LeapfrogTrainer:
-    def __init__(self, model, epochs=10000, lr=0.001, patience=7, warm_up_steps=100, val_size=0.0, weight_decay=0.0, loss_function=torch.nn.L1Loss(), optimizer=torch.optim.Adam, shuffle=True, batch_size=None, verbose=False, device=None):
+    def __init__(self, model, epochs=10000, lr=0.001, patience=7, warm_up_steps=100, val_size=0.0, weight_decay=0.0, optimizer=torch.optim.Adam, shuffle=True, batch_size=None, verbose=False, device=None):
 
         self.model         = model
         self.epochs        = epochs
@@ -45,12 +45,11 @@ class LeapfrogTrainer:
         self.verbose       = verbose
         self.optimizer     = optimizer
         self.device        = device
-        self.loss_function = loss_function
 
     def fit(self, X, y, **kwargs):
         return self(X, y, **kwargs)
 
-    def __call__(self, X, y, X_val=None, y_val=None, device=None):
+    def __call__(self, X, y, X_val=None, y_val=None, loss_function=torch.nn.L1Loss(), device=None):
 
         if self.val_size > 0.0:
             assert X_val is None and y_val is None, f'val_size is non-zero and X_val / y_val are given'
@@ -131,7 +130,8 @@ class LeapfrogTrainer:
                 # Evaluate model
                 y_hat = self.model(X_batch)
                 # Compute loss
-                loss = self.loss_function(y_hat, y_batch)
+                assert y_hat.shape == y_batch.shape, 'Internal Error'
+                loss = loss_function(y_hat, y_batch)
                 # Backpropagate gradient
                 loss.backward()
                 # Perform one gradient descent step
@@ -167,8 +167,9 @@ class LeapfrogTrainer:
                 loss_val = loss_train
             else:
                 with torch.no_grad():
-                    outputs = self.model(X_val)
-                    loss_val = self.loss_function(outputs, y_val).item()
+                    y_hat = self.model(X_val)
+                    assert y_hat.shape == y_val.shape, 'Internal Error'
+                    loss_val = loss_function(y_hat, y_val).item()
                 # Record validation loss
                 hist_val.append(loss_val)
 
@@ -219,14 +220,3 @@ class LeapfrogTrainer:
         if device is None:
             device = self.device
         return self.model.predict(X, device=device)
-
-    def evaluate(self, X, y, **kwargs):
-        # Bugfix when `TransformedTargetRegressor` is used, which
-        # flattens the target array
-        if len(y.shape) == 1:
-            y = y.reshape(-1, 1)
-        y_hat = self.predict(X, **kwargs)
-        y_hat = torch.tensor(y_hat, dtype=torch.float32)
-        y     = torch.tensor(y    , dtype=torch.float32)
-        return self.loss_function(y, y_hat).item()
-

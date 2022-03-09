@@ -20,6 +20,7 @@
 
 import numpy as np
 import sys
+import torch
 
 from multiprocessing.pool import ThreadPool as Pool
 from sklearn.model_selection import KFold
@@ -40,12 +41,16 @@ class LeapfrogTuner:
         self.verbose         = verbose
         self.use_test_as_val = use_test_as_val
 
-    def fit(self, X, y, **kwargs):
+    def fit(self, X, y, loss_function=torch.nn.L1Loss(), **kwargs):
         if self.verbose:
             print(f'Testing >> {len(self.parameters)} << configurations in >> {self.n_splits} <<-fold CV:')
             sys.stdout.flush()
+        # Bugfix when `TransformedTargetRegressor` is used, which
+        # flattens the target array
+        if len(y.shape) == 1:
+            y = y.reshape(-1, 1)
         with Pool(self.n_jobs) as pool:
-            r = pool.map(lambda i: self._fit_cv(X, y, i, **kwargs), range(len(self.parameters)))
+            r = pool.map(lambda i: self._fit_cv(X, y, i, loss_function, **kwargs), range(len(self.parameters)))
         # extract performances
         error = [ d['error'] for d in r]
         # Get best parameters
@@ -60,7 +65,7 @@ class LeapfrogTuner:
         else:
             self.model = r[k]['models']
 
-    def _fit_cv(self, X, y, k, **kwargs):
+    def _fit_cv(self, X, y, k, loss_function, **kwargs):
         # This function processes one CV-fold
         def process_fold(x):
             # Unravel parameters
@@ -78,9 +83,9 @@ class LeapfrogTuner:
                 if self.device is not None:
                     kwargs['device'] = self.device
 
-            X_train = X[i_train,:]
+            X_train = X[i_train]
             y_train = y[i_train]
-            X_test  = X[i_test,:]
+            X_test  = X[i_test]
             y_test  = y[i_test]
 
             model = self.get_model(self.parameters[k])
@@ -89,7 +94,15 @@ class LeapfrogTuner:
             else:
                 model.fit(X_train, y_train, **kwargs)
 
-            return model, model.evaluate(X_test, y_test)
+            # Evaluate model
+            with torch.no_grad():
+                y_hat  = model.predict(X_test)
+                y_hat  = torch.tensor(y_hat , dtype=torch.float32)
+                y_test = torch.tensor(y_test, dtype=torch.float32)
+                assert y_hat.shape == y_test.shape, 'Internal Error'
+                test_loss = loss_function(y_test, y_hat).item()
+
+            return model, test_loss
 
         # Process all CV-folds
         result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state).split(X, y=y)))
