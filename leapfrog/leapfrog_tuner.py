@@ -75,7 +75,7 @@ class LeapfrogTuner:
         # Set device for training. If device is a list, select
         # the k-th device for training
         if type(device) == list:
-            device = self.device[k % len(device)]
+            device = device[k % len(device)]
         # This function processes one CV-fold
         def process_fold(x):
             # Unravel parameters
