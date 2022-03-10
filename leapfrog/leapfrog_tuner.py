@@ -29,7 +29,7 @@ from sklearn.model_selection import KFold
 ## ----------------------------------------------------------------------------
 
 class LeapfrogTuner:
-    def __init__(self, get_model, parameters, n_splits=10, n_jobs=10, refit=False, use_test_as_val=False, random_state=None, device=None, verbose=False):
+    def __init__(self, get_model, parameters, n_splits=10, n_jobs=10, loss_function=torch.nn.L1Loss(), refit=False, use_test_as_val=False, random_state=None, device=None, verbose=False):
         self.get_model       = get_model
         self.parameters      = parameters
         self.n_splits        = n_splits
@@ -40,8 +40,9 @@ class LeapfrogTuner:
         self.device          = device
         self.verbose         = verbose
         self.use_test_as_val = use_test_as_val
+        self.loss_function   = loss_function
 
-    def fit(self, X, y, loss_function=torch.nn.L1Loss(), **kwargs):
+    def fit(self, X, y, **kwargs):
         if self.verbose:
             print(f'Testing >> {len(self.parameters)} << configurations in >> {self.n_splits} <<-fold CV:')
             sys.stdout.flush()
@@ -50,7 +51,7 @@ class LeapfrogTuner:
         if len(y.shape) == 1:
             y = y.reshape(-1, 1)
         with Pool(self.n_jobs) as pool:
-            r = pool.map(lambda i: self._fit_cv(X, y, i, loss_function, **kwargs), range(len(self.parameters)))
+            r = pool.map(lambda i: self._fit_cv(X, y, i, **kwargs), range(len(self.parameters)))
         # extract performances
         error = [ d['error'] for d in r]
         # Get best parameters
@@ -65,7 +66,16 @@ class LeapfrogTuner:
         else:
             self.model = r[k]['models']
 
-    def _fit_cv(self, X, y, k, loss_function, **kwargs):
+    def _fit_cv(self, X, y, k, loss_function=None, device=None, **kwargs):
+        # Get default values from constructor
+        if loss_function is None:
+            loss_function = self.loss_function
+        if device is None:
+            device = self.device
+        # Set device for training. If device is a list, select
+        # the k-th device for training
+        if type(device) == list:
+            device = self.device[k % len(device)]
         # This function processes one CV-fold
         def process_fold(x):
             # Unravel parameters
@@ -74,14 +84,6 @@ class LeapfrogTuner:
             if self.verbose:
                 print(f'=> Testing configuration >> {k+1} / {len(self.parameters)} << in CV step >> {i+1} / {self.n_splits} <<')
                 sys.stdout.flush()
-
-            # Set device for training. If self.device is a list, select
-            # the k-th device for training
-            if type(self.device) == list:
-                kwargs['device'] = self.device[k % len(self.device)]
-            else:
-                if self.device is not None:
-                    kwargs['device'] = self.device
 
             X_train = X[i_train]
             y_train = y[i_train]

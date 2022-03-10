@@ -31,7 +31,7 @@ from .leapfrog import Optimizer
 ## ----------------------------------------------------------------------------
 
 class LeapfrogTrainer:
-    def __init__(self, model, epochs=10000, lr=0.001, patience=7, warm_up_steps=100, val_size=0.0, weight_decay=0.0, optimizer=torch.optim.Adam, shuffle=True, batch_size=None, verbose=False, device=None):
+    def __init__(self, model, epochs=10000, lr=0.001, patience=7, warm_up_steps=100, val_size=0.0, weight_decay=0.0, optimizer=torch.optim.Adam, loss_function=torch.nn.L1Loss(), shuffle=True, batch_size=None, verbose=False, device=None):
 
         self.model         = model
         self.epochs        = epochs
@@ -44,12 +44,13 @@ class LeapfrogTrainer:
         self.batch_size    = batch_size
         self.verbose       = verbose
         self.optimizer     = optimizer
+        self.loss_function = loss_function
         self.device        = device
 
     def fit(self, X, y, **kwargs):
         return self(X, y, **kwargs)
 
-    def __call__(self, X, y, X_val=None, y_val=None, loss_function=torch.nn.L1Loss(), device=None):
+    def __call__(self, X, y, X_val=None, y_val=None, loss_function=None, device=None):
 
         if self.val_size > 0.0:
             assert X_val is None and y_val is None, f'val_size is non-zero and X_val / y_val are given'
@@ -57,6 +58,8 @@ class LeapfrogTrainer:
             assert y_val is None, f'X_val is None but y_val is not'
         if X_val is not None:
             assert y_val is not None, f'X_val filled with plenty of beautiful data, but y_val is None'
+        if loss_function is None:
+            loss_function = self.loss_function
         if device is None:
             device = self.device
         # Bugfix when `TransformedTargetRegressor` is used, which
