@@ -18,6 +18,8 @@
 ## OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ## SOFTWARE.
 
+import numpy as np
+
 ## ----------------------------------------------------------------------------
 
 class LeapfrogStopper:
@@ -33,6 +35,10 @@ class LeapfrogStopper:
         self.model          = None
 
     def __call__(self, val_loss, model):
+
+        if np.isnan(val_loss):
+            self.early_stop = True
+            return self.early_stop
 
         if self.val_loss_min is None:
             self.val_loss_min = val_loss
