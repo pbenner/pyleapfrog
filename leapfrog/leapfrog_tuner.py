@@ -29,7 +29,7 @@ from sklearn.model_selection import KFold
 ## ----------------------------------------------------------------------------
 
 class LeapfrogTuner:
-    def __init__(self, get_model, parameters, n_splits=10, n_jobs=10, loss_function=torch.nn.L1Loss(), refit=False, use_test_as_val=False, random_state=None, device=None, verbose=False):
+    def __init__(self, get_model, parameters, n_splits=10, n_jobs=10, loss_function=torch.nn.L1Loss(), summarizer=np.mean, refit=False, use_test_as_val=False, random_state=None, device=None, verbose=False):
         self.get_model       = get_model
         self.parameters      = parameters
         self.n_splits        = n_splits
@@ -41,6 +41,7 @@ class LeapfrogTuner:
         self.verbose         = verbose
         self.use_test_as_val = use_test_as_val
         self.loss_function   = loss_function
+        self.summarizer      = summarizer
 
     def fit(self, X, y, **kwargs):
         if self.verbose:
@@ -114,7 +115,7 @@ class LeapfrogTuner:
         models = [ x[0] for x in result ]
         errors = [ x[1] for x in result ]
 
-        return {'error': np.mean(errors), 'models': models}
+        return {'error': self.summarizer(errors), 'models': models}
 
     def predict(self, *args, **kwargs):
         if self.refit:
