@@ -46,6 +46,35 @@ class LogisticModel(torch.nn.Module):
             y_hat = self(X)
         return y_hat.cpu().numpy()
 
+## Leapfrog ensemble
+## ----------------------------------------------------------------------------
+
+class LeapfrogEnsemble(torch.nn.Module):
+    def __init__(self, models):
+        super(LeapfrogEnsemble, self).__init__()
+        self.models = models
+
+    def forward(self, x):
+        n = len(self.models)
+        y = self.models[0].forward(x)/n
+        for model in self.models[1:]:
+            y += model.forward(x)/n
+        return y
+
+    def predict(self, *args, **kwargs):
+        n = len(self.models)
+        y = self.models[0].predict(*args, **kwargs)/n
+        for model in self.models[1:]:
+            y += model.predict(*args, **kwargs)/n
+        return y
+
+    def to(self, *args, **kwargs):
+        self = super().to(*args, **kwargs)
+        # super().to() doesn't recognize lists of parameters...
+        for i, _ in enumerate(self.models):
+            self.models[i] = self.models[i].to(*args, **kwargs)
+        return self
+
 ## Leapfrog neural network
 ## ----------------------------------------------------------------------------
 

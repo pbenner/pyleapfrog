@@ -25,6 +25,8 @@ import torch
 from multiprocessing.pool import ThreadPool as Pool
 from sklearn.model_selection import KFold
 
+from .leapfrog_models import LeapfrogEnsemble
+
 ## Leapfrog hyperparameter tuner
 ## ----------------------------------------------------------------------------
 
@@ -65,7 +67,7 @@ class LeapfrogTuner:
             self.model = self.get_model(X.shape[1], self.parameters[k])
             self.model.fit(X, y, **kwargs)
         else:
-            self.model = r[k]['models']
+            self.model = LeapfrogEnsemble(r[k]['models'])
 
     def _fit_cv(self, X, y, k, loss_function=None, device=None, **kwargs):
         # Get default values from constructor
@@ -118,11 +120,4 @@ class LeapfrogTuner:
         return {'error': self.summarizer(errors), 'models': models}
 
     def predict(self, *args, **kwargs):
-        if self.refit:
-            return self.model.predict(*args, **kwargs)
-        else:
-            n = len(self.model)
-            y = self.model[0].predict(*args, **kwargs)/n
-            for model in self.model[1:]:
-                y += model.predict(*args, **kwargs)/n
-            return y
+        return self.model.predict(*args, **kwargs)
