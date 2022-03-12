@@ -98,8 +98,8 @@ class Parameter(torch.nn.Parameter):
         data     = self.data[i].cpu()
         # update parameters
         self.weight_decay[i] = _leapfrog_regularize(data.numpy(),
-            self.data_old.numpy(),
-            self.grad.cpu().numpy(),
+            self.data_old[i].numpy(),
+            self.grad[i].cpu().numpy(),
             self.nu,
             self.sigma,
             self.exclude,
