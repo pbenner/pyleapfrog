@@ -79,18 +79,20 @@ class LeapfrogEnsemble(torch.nn.Module):
 ## ----------------------------------------------------------------------------
 
 class LeapfrogModel(torch.nn.Module):
-    def __init__(self, p, q, ks, q_steps=[], skip_connections=False, proxop=None, activation=torch.nn.LeakyReLU(), debug=0, seed=None):
+    def __init__(self, q, ks, q_steps=[], skip_connections=False, proxop=None, activation=torch.nn.LeakyReLU(), activation_out=None, debug=0, seed=None):
+        if len(ks) < 2:
+            raise ValueError("invalid argument: ks must have at least two values for input and output") 
         if seed is not None:
             torch     .manual_seed(seed)
             torch.cuda.manual_seed(seed)
         super(LeapfrogModel, self).__init__()
-        self.linear      = []
-        self.linear_in   = Linear(p, ks[0], q_steps+[q], independent=False, unique=False, proxop=proxop, debug=debug)
-        self.linear_out  = torch.nn.Linear(ks[-1], 1)
-        self.activation  = activation
-        for i in range(len(ks)-1):
-            self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
+        self.activation       = activation
+        self.activation_out   = activation_out
         self.skip_connections = skip_connections
+        self.linear           = torch.nn.ModuleList([])
+        self.linear.append(Linear(ks[0], ks[1], q_steps+[q], independent=False, unique=False, proxop=proxop, debug=debug))
+        for i in range(1, len(ks)-1):
+            self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
 
     def block(self, x, i):
         y = self.linear[i](x)
@@ -100,11 +102,17 @@ class LeapfrogModel(torch.nn.Module):
         return y
 
     def forward(self, x):
-        x = self.linear_in(x)
-        x = self.activation(x)
-        for i in range(len(self.linear)):
+        # Apply leapfrog layer without activation
+        x = self.linear[0](x)
+        # Apply innear layers
+        for i in range(1, len(self.linear)-1):
             x = self.block(x, i)
-        x = self.linear_out(x)
+        # Apply final layer if available
+        if len(self.linear) > 1:
+            x = self.linear[-1](x)
+        # Apply output activation if available
+        if self.activation_out is not None:
+            x = self.activation_out(x)
         return x
 
     def predict(self, X, device=None):
@@ -112,31 +120,25 @@ class LeapfrogModel(torch.nn.Module):
         with torch.no_grad():
             y_hat = self(X)
         return y_hat.cpu().numpy()
-
-    def to(self, *args, **kwargs):
-        self = super().to(*args, **kwargs)
-        # super().to() doesn't recognize lists of parameters... 
-        for i, _ in enumerate(self.linear):
-            self.linear[i] = self.linear[i].to(*args, **kwargs)
-        return self
 
 ## ----------------------------------------------------------------------------
 ## ----------------------------------------------------------------------------
 
 class LeapfrogIndependentModel(torch.nn.Module):
-    def __init__(self, p, q, ks, q_steps=[], skip_connections=False, proxop=None, activation=torch.nn.LeakyReLU(), debug=0, seed=None):
+    def __init__(self, q, ks, q_steps=[], skip_connections=False, proxop=None, activation=torch.nn.LeakyReLU(), activation_out=None, debug=0, seed=None):
+        if len(ks) < 2:
+            raise ValueError("invalid argument: ks must have at least two values for input and output") 
         if seed is not None:
             torch     .manual_seed(seed)
             torch.cuda.manual_seed(seed)
         super(LeapfrogIndependentModel, self).__init__()
-        self.linear_lf   = Linear(p, q, q_steps+[1], independent=True, unique=True, proxop=proxop, debug=debug)
-        self.linear      = []
-        self.linear_in   = torch.nn.Linear(q, ks[0])
-        self.linear_out  = torch.nn.Linear(ks[-1], 1)
-        self.activation  = activation
-        for i in range(len(ks)-1):
-            self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
+        self.activation       = activation
+        self.activation_out   = activation_out
         self.skip_connections = skip_connections
+        self.linear           = torch.nn.ModuleList([])
+        self.linear.append(Linear(ks[0], ks[1], q_steps+[q], independent=True, unique=True, proxop=proxop, debug=debug))
+        for i in range(1, len(ks)-1):
+            self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
 
     def block(self, x, i):
         y = self.linear[i](x)
@@ -146,11 +148,17 @@ class LeapfrogIndependentModel(torch.nn.Module):
         return y
 
     def forward(self, x):
-        x = self.linear_lf(x)
-        x = self.linear_in(x)
-        for i in range(len(self.linear)):
+        # Apply leapfrog layer without activation
+        x = self.linear[0](x)
+        # Apply innear layers
+        for i in range(1, len(self.linear)-1):
             x = self.block(x, i)
-        x = self.linear_out(x)
+        # Apply final layer if available
+        if len(self.linear) > 1:
+            x = self.linear[-1](x)
+        # Apply output activation if available
+        if self.activation_out is not None:
+            x = self.activation_out(x)
         return x
 
     def predict(self, X, device=None):
@@ -158,31 +166,26 @@ class LeapfrogIndependentModel(torch.nn.Module):
         with torch.no_grad():
             y_hat = self(X)
         return y_hat.cpu().numpy()
-
-    def to(self, *args, **kwargs):
-        self = super().to(*args, **kwargs)
-        # super().to() doesn't recognize lists of parameters... 
-        for i, _ in enumerate(self.linear):
-            self.linear[i] = self.linear[i].to(*args, **kwargs)
-        return self
 
 ## ----------------------------------------------------------------------------
 ## ----------------------------------------------------------------------------
 
 class LeapfrogRepeatModel(torch.nn.Module):
-    def __init__(self, p, q, ks, q_steps=[], skip_connections=False, activation=torch.nn.LeakyReLU(), debug=0, seed=None):
+    def __init__(self, q, ks, q_steps=[], skip_connections=False, proxop=None, activation=torch.nn.LeakyReLU(), activation_out=None, debug=0, seed=None):
+        if len(ks) < 2:
+            raise ValueError("invalid argument: ks must have at least two values for input and output") 
         if seed is not None:
             torch     .manual_seed(seed)
             torch.cuda.manual_seed(seed)
         super(LeapfrogRepeatModel, self).__init__()
-        self.linear_lf   = Linear(p, 1, q_steps+[q], independent=False, unique=False, debug=debug)
-        self.linear_lf_k = ks[0]
-        self.linear      = []
-        self.linear_out  = torch.nn.Linear(ks[-1], 1)
-        self.activation  = activation
-        for i in range(len(ks)-1):
-            self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
+        self.activation       = activation
+        self.activation_out   = activation_out
         self.skip_connections = skip_connections
+        self.linear           = torch.nn.ModuleList([])
+        self.linear_k         = ks[1]
+        self.linear.append(Linear(ks[0], 1, q_steps+[q], independent=False, unique=False, proxop=proxop, debug=debug))
+        for i in range(1, len(ks)-1):
+            self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
 
     def block(self, x, i):
         y = self.linear[i](x)
@@ -192,11 +195,18 @@ class LeapfrogRepeatModel(torch.nn.Module):
         return y
 
     def forward(self, x):
-        x = self.linear_lf(x)
-        x = x.repeat_interleave(self.linear_lf_k, dim=1)
-        for i in range(len(self.linear)):
+        # Apply leapfrog layer without activation
+        x = self.linear[0](x)
+        x = x.repeat_interleave(self.linear_k, dim=1)
+        # Apply innear layers
+        for i in range(1, len(self.linear)-1):
             x = self.block(x, i)
-        x = self.linear_out(x)
+        # Apply final layer if available
+        if len(self.linear) > 1:
+            x = self.linear[-1](x)
+        # Apply output activation if available
+        if self.activation_out is not None:
+            x = self.activation_out(x)
         return x
 
     def predict(self, X, device=None):
@@ -204,10 +214,3 @@ class LeapfrogRepeatModel(torch.nn.Module):
         with torch.no_grad():
             y_hat = self(X)
         return y_hat.cpu().numpy()
-
-    def to(self, *args, **kwargs):
-        self = super().to(*args, **kwargs)
-        # super().to() doesn't recognize lists of parameters... 
-        for i, _ in enumerate(self.linear):
-            self.linear[i] = self.linear[i].to(*args, **kwargs)
-        return self
