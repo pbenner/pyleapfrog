@@ -42,6 +42,7 @@ class LogisticModel(torch.nn.Module):
 
     def predict(self, X, device=None):
         X = torch.tensor(X, dtype=torch.float32, device=device)
+        self = self.to(X.device)
         with torch.no_grad():
             y_hat = self(X)
         return y_hat.cpu().numpy()
@@ -52,7 +53,7 @@ class LogisticModel(torch.nn.Module):
 class LeapfrogEnsemble(torch.nn.Module):
     def __init__(self, models):
         super(LeapfrogEnsemble, self).__init__()
-        self.models = models
+        self.models = torch.nn.ModuleList(models)
 
     def forward(self, x):
         n = len(self.models)
@@ -67,13 +68,6 @@ class LeapfrogEnsemble(torch.nn.Module):
         for model in self.models[1:]:
             y += model.predict(*args, **kwargs)/n
         return y
-
-    def to(self, *args, **kwargs):
-        self = super().to(*args, **kwargs)
-        # super().to() doesn't recognize lists of parameters...
-        for i, _ in enumerate(self.models):
-            self.models[i] = self.models[i].to(*args, **kwargs)
-        return self
 
 ## Leapfrog neural network
 ## ----------------------------------------------------------------------------
@@ -117,6 +111,7 @@ class LeapfrogModel(torch.nn.Module):
 
     def predict(self, X, device=None):
         X = torch.tensor(X, dtype=torch.float32, device=device)
+        self = self.to(X.device)
         with torch.no_grad():
             y_hat = self(X)
         return y_hat.cpu().numpy()
@@ -163,6 +158,7 @@ class LeapfrogIndependentModel(torch.nn.Module):
 
     def predict(self, X, device=None):
         X = torch.tensor(X, dtype=torch.float32, device=device)
+        self = self.to(X.device)
         with torch.no_grad():
             y_hat = self(X)
         return y_hat.cpu().numpy()
@@ -211,6 +207,7 @@ class LeapfrogRepeatModel(torch.nn.Module):
 
     def predict(self, X, device=None):
         X = torch.tensor(X, dtype=torch.float32, device=device)
+        self = self.to(X.device)
         with torch.no_grad():
             y_hat = self(X)
         return y_hat.cpu().numpy()

@@ -107,7 +107,7 @@ class LeapfrogTuner:
                 assert y_hat.shape == y_test.shape, 'Internal Error'
                 test_loss = loss_function(y_test, y_hat).item()
 
-            return model, test_loss
+            return model.get_model(), test_loss
 
         # Process all CV-folds
         result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state).split(X, y=y)))
