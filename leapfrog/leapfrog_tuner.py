@@ -31,8 +31,8 @@ from .leapfrog_models import LeapfrogEnsemble
 ## ----------------------------------------------------------------------------
 
 class LeapfrogTuner:
-    def __init__(self, get_model, parameters, n_splits=10, n_jobs=10, loss_function=torch.nn.L1Loss(), summarizer=np.mean, refit=False, use_test_as_val=False, random_state=None, device=None, verbose=False):
-        self.get_model       = get_model
+    def __init__(self, get_estimator, parameters, n_splits=10, n_jobs=10, loss_function=torch.nn.L1Loss(), summarizer=np.mean, refit=False, use_test_as_val=False, random_state=None, device=None, verbose=False):
+        self.get_estimator   = get_estimator
         self.parameters      = parameters
         self.n_splits        = n_splits
         self.model           = None
@@ -64,8 +64,9 @@ class LeapfrogTuner:
             sys.stdout.flush()
         if self.refit:
             # Fit model on full data
-            self.model = self.get_model(X.shape[1], self.parameters[k])
-            self.model.fit(X, y, **kwargs)
+            estimator = self.get_estimator(X.shape[1], self.parameters[k])
+            estimator.fit(X, y, **kwargs)
+            self.model = estimator.get_model()
         else:
             self.model = LeapfrogEnsemble(r[k]['models'])
 
@@ -93,12 +94,13 @@ class LeapfrogTuner:
             X_test  = X[i_test]
             y_test  = y[i_test]
 
-            model = self.get_model(self.parameters[k])
+            estimator = self.get_estimator(self.parameters[k])
             if self.use_test_as_val:
-                model.fit(X_train, y_train, X_val=X_test, y_val=y_test, **kwargs)
+                estimator.fit(X_train, y_train, X_val=X_test, y_val=y_test, **kwargs)
             else:
-                model.fit(X_train, y_train, **kwargs)
+                estimator.fit(X_train, y_train, **kwargs)
 
+            model = estimator.get_model()
             # Evaluate model
             with torch.no_grad():
                 y_hat  = model.predict(X_test)
@@ -107,7 +109,7 @@ class LeapfrogTuner:
                 assert y_hat.shape == y_test.shape, 'Internal Error'
                 test_loss = loss_function(y_test, y_hat).item()
 
-            return model.get_model(), test_loss
+            return model, test_loss
 
         # Process all CV-folds
         result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state).split(X, y=y)))
@@ -119,5 +121,7 @@ class LeapfrogTuner:
 
         return {'error': self.summarizer(errors), 'models': models}
 
-    def predict(self, *args, **kwargs):
-        return self.model.predict(*args, **kwargs)
+    def predict(self, *args, device=None, **kwargs):
+        if device is None:
+            device = self.device
+        return self.model.predict(*args, device=device, **kwargs)

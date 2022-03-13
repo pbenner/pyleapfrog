@@ -27,10 +27,10 @@ from sklearn.model_selection import train_test_split
 from .leapfrog_stopper import LeapfrogStopper
 from .leapfrog import Optimizer
 
-## Leapfrog model trainer
+## Leapfrog model Estimator
 ## ----------------------------------------------------------------------------
 
-class LeapfrogTrainer:
+class LeapfrogEstimator:
     def __init__(self, model, epochs=10000, lr=0.001, patience=7, warm_up_steps=100, val_size=0.0, weight_decay=0.0, optimizer=torch.optim.Adam, loss_function=torch.nn.L1Loss(), shuffle=True, batch_size=None, verbose=False, device=None):
 
         self.model         = model
@@ -219,7 +219,7 @@ class LeapfrogTrainer:
     def get_model(self):
         return self.model
 
-    def predict(self, X, device=None):
+    def predict(self, *args, device=None, **kwargs):
         if device is None:
             device = self.device
-        return self.model.predict(X, device=device)
+        return self.model.predict(*args, device=device, **kwargs)

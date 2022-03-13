@@ -122,7 +122,7 @@ cdef np.float32_t __leapfrog_regularize(np.ndarray[np.float32_t, ndim=1] _data, 
         nu   [i] = abs((data[i] - data_old[i])/grad[i])
         sigma[i] = abs(data[i])/nu[i]
 
-        if isnan(sigma[i]) or isinf(sigma[i]):
+        if isnan(sigma[i]) or isinf(sigma[i]) or isinf(nu[i]):
             nu   [i] = 0.0
             sigma[i] = 0.0
         
