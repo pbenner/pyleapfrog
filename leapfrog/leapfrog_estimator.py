@@ -118,6 +118,9 @@ class LeapfrogEstimator:
 
         final_target = optimizer.is_final()
 
+        if self.epochs is None:
+            self.epochs = sys.maxsize
+
         for _epoch in range(0, self.epochs):
             if self.verbose:
                 print(f'\nTraining epoch: {_epoch}')
