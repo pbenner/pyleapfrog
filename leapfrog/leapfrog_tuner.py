@@ -18,6 +18,7 @@
 ## OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ## SOFTWARE.
 
+from random import shuffle
 import numpy as np
 import sys
 import torch
@@ -31,7 +32,7 @@ from .leapfrog_models import LeapfrogEnsemble
 ## ----------------------------------------------------------------------------
 
 class LeapfrogTuner:
-    def __init__(self, get_estimator, parameters, n_splits=10, n_jobs=10, loss_function=torch.nn.L1Loss(), summarizer=np.mean, refit=False, use_test_as_val=False, random_state=None, device=None, verbose=False):
+    def __init__(self, get_estimator, parameters, n_splits=10, n_jobs=10, loss_function=torch.nn.L1Loss(), summarizer=np.mean, shuffle=True, sort_target=None, refit=False, use_test_as_val=False, random_state=None, device=None, verbose=False):
         self.get_estimator   = get_estimator
         self.parameters      = parameters
         self.n_splits        = n_splits
@@ -43,6 +44,8 @@ class LeapfrogTuner:
         self.verbose         = verbose
         self.use_test_as_val = use_test_as_val
         self.loss_function   = loss_function
+        self.shuffle         = shuffle
+        self.sort_target     = sort_target
         self.summarizer      = summarizer
 
     def fit(self, X, y, **kwargs):
@@ -80,6 +83,11 @@ class LeapfrogTuner:
         # the k-th device for training
         if type(device) == list:
             device = device[k % len(device)]
+        # Sort target values
+        if self.sort_target is not None:
+            i_sorted = np.argsort(y[:,self.sort_target])
+            X = X[i_sorted]
+            y = y[i_sorted]
         # This function processes one CV-fold
         def process_fold(x):
             # Unravel parameters
@@ -112,12 +120,15 @@ class LeapfrogTuner:
             return model, test_loss
 
         # Process all CV-folds
-        result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state).split(X, y=y)))
+        result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=self.shuffle, random_state=self.random_state).split(X, y=y)))
         result = list(result)
 
         # Split result
         models = [ x[0] for x in result ]
         errors = [ x[1] for x in result ]
+
+        if self.verbose:
+            print(f'=> Configuration {k+1} finished with errors: {self.summarizer(errors)}=summary({errors})')
 
         return {'error': self.summarizer(errors), 'models': models}
 
