@@ -24,7 +24,7 @@ import sys
 import torch
 
 from multiprocessing.pool import ThreadPool as Pool
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, GroupKFold
 
 from .leapfrog_models import LeapfrogEnsemble
 
@@ -32,7 +32,7 @@ from .leapfrog_models import LeapfrogEnsemble
 ## ----------------------------------------------------------------------------
 
 class LeapfrogTuner:
-    def __init__(self, get_estimator, parameters, n_splits=10, n_jobs=10, loss_function=torch.nn.L1Loss(), summarizer=np.mean, shuffle=True, sort_target=None, refit=False, use_test_as_val=False, random_state=None, device=None, verbose=False):
+    def __init__(self, get_estimator, parameters, n_splits=10, n_jobs=10, loss_function=torch.nn.L1Loss(), summarizer=np.mean, mode=None, sort_target=0, refit=False, use_test_as_val=False, random_state=None, device=None, verbose=False):
         self.get_estimator   = get_estimator
         self.parameters      = parameters
         self.n_splits        = n_splits
@@ -44,7 +44,7 @@ class LeapfrogTuner:
         self.verbose         = verbose
         self.use_test_as_val = use_test_as_val
         self.loss_function   = loss_function
-        self.shuffle         = shuffle
+        self.mode            = mode
         self.sort_target     = sort_target
         self.summarizer      = summarizer
 
@@ -67,7 +67,7 @@ class LeapfrogTuner:
             sys.stdout.flush()
         if self.refit:
             # Fit model on full data
-            estimator = self.get_estimator(X.shape[1], self.parameters[k])
+            estimator = self.get_estimator(self.parameters[k])
             estimator.fit(X, y, **kwargs)
             self.model = estimator.get_model()
         else:
@@ -83,11 +83,7 @@ class LeapfrogTuner:
         # the k-th device for training
         if type(device) == list:
             device = device[k % len(device)]
-        # Sort target values
-        if self.sort_target is not None:
-            i_sorted = np.argsort(y[:,self.sort_target])
-            X = X[i_sorted]
-            y = y[i_sorted]
+
         # This function processes one CV-fold
         def process_fold(x):
             # Unravel parameters
@@ -119,8 +115,24 @@ class LeapfrogTuner:
 
             return model, test_loss
 
+        if self.mode == "interpolation" or self.mode == "extrapolation":
+            # Sort target value
+            i_sorted = np.argsort(y[:,self.sort_target])
+            X = X[i_sorted]
+            y = y[i_sorted]
         # Process all CV-folds
-        result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=self.shuffle, random_state=self.random_state).split(X, y=y)))
+        if self.mode == "interpolation":
+            ## Interpolation means that performance is tested on every k-th sample of the sorted targets,
+            ## which means that the testing set is typically within the convex hull of the training set
+            groups = np.mod(list(range(len(y))), self.n_splits)
+            result = map(process_fold, enumerate(GroupKFold(n_splits=self.n_splits).split(X, y=y, groups=groups)))
+        elif self.mode == "extrapolation":
+            ## Extrapolation means that we take the sorted target values as is and do K-fold cross-validation,
+            ## whereby performance is tested on samples that are outside the convex hull of the training set
+            result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=False, random_state=None).split(X, y=y)))
+        else:
+            result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=self.shuffle, random_state=self.random_state).split(X, y=y)))
+        # Launch cross-validation
         result = list(result)
 
         # Split result
