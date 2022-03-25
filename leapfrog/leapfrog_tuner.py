@@ -131,7 +131,7 @@ class LeapfrogTuner:
             ## whereby performance is tested on samples that are outside the convex hull of the training set
             result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=False, random_state=None).split(X, y=y)))
         else:
-            result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=self.shuffle, random_state=self.random_state).split(X, y=y)))
+            result = map(process_fold, enumerate(KFold(n_splits=self.n_splits, shuffle=True , random_state=self.random_state).split(X, y=y)))
         # Launch cross-validation
         result = list(result)
 
