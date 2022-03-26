@@ -91,8 +91,12 @@ class LeapfrogModel(torch.nn.Module):
     def block(self, x, i):
         y = self.linear[i](x)
         y = self.activation(y)
-        if self.skip_connections and x.shape == y.shape:
-            y = y + x
+        if self.skip_connections != False and x.shape == y.shape:
+            if type(self.skip_connections) == int:
+                if i % self.skip_connections == 0:
+                    y = y + x
+            if type(self.skip_connections) == bool:
+                y = y + x
         return y
 
     def forward(self, x):
@@ -138,8 +142,12 @@ class LeapfrogIndependentModel(torch.nn.Module):
     def block(self, x, i):
         y = self.linear[i](x)
         y = self.activation(y)
-        if self.skip_connections and x.shape == y.shape:
-            y = y + x
+        if self.skip_connections != False and x.shape == y.shape:
+            if type(self.skip_connections) == int:
+                if i % self.skip_connections == 0:
+                    y = y + x
+            if type(self.skip_connections) == bool:
+                y = y + x
         return y
 
     def forward(self, x):
@@ -186,8 +194,12 @@ class LeapfrogRepeatModel(torch.nn.Module):
     def block(self, x, i):
         y = self.linear[i](x)
         y = self.activation(y)
-        if self.skip_connections and x.shape == y.shape:
-            y = y + x
+        if self.skip_connections != False and x.shape == y.shape:
+            if type(self.skip_connections) == int:
+                if i % self.skip_connections == 0:
+                    y = y + x
+            if type(self.skip_connections) == bool:
+                y = y + x
         return y
 
     def forward(self, x):
