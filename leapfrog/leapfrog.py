@@ -152,10 +152,11 @@ class Linear(torch.nn.Module):
 ## ----------------------------------------------------------------------------
 
 class Optimizer():
-    def __init__(self, optimizer, tolerance=1e-4):
-        self.optimizer = optimizer
-        self.loss      = None
-        self.tolerance = tolerance
+    def __init__(self, optimizer, tolerance=1e-4, verbose_grad=False):
+        self.optimizer    = optimizer
+        self.loss         = None
+        self.tolerance    = tolerance
+        self.verbose_grad = verbose_grad
 
     def zero_grad(self):
         self.optimizer.zero_grad()
@@ -172,8 +173,10 @@ class Optimizer():
         ## make gradient step
         self.optimizer.step()
         ## regularize result
-        for param_group in self.optimizer.param_groups:
-            for parameters in param_group['params']:
+        for i, param_group in enumerate(self.optimizer.param_groups):
+            for j, parameters in enumerate(param_group['params']):
+                if self.verbose_grad:
+                    print(f'mean abs grad: {i}:{j}={np.mean(np.abs(parameters.grad.detach().cpu().numpy()))}')
                 if isinstance(parameters, Parameter):
                     parameters.regularize()
 

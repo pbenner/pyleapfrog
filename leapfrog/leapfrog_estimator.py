@@ -31,7 +31,7 @@ from .leapfrog import Optimizer
 ## ----------------------------------------------------------------------------
 
 class LeapfrogEstimator:
-    def __init__(self, model, epochs=10000, lr=0.001, patience=7, warm_up_steps=100, val_size=0.0, weight_decay=0.0, optimizer=torch.optim.Adam, loss_function=torch.nn.L1Loss(), shuffle=True, batch_size=None, verbose=False, device=None):
+    def __init__(self, model, epochs=10000, lr=0.001, tolerance=1e-4, patience=7, warm_up_steps=100, val_size=0.0, weight_decay=0.0, optimizer=torch.optim.Adam, loss_function=torch.nn.L1Loss(), shuffle=True, batch_size=None, device=None, verbose=False, verbose_grad=False):
 
         self.model         = model
         self.epochs        = epochs
@@ -39,13 +39,15 @@ class LeapfrogEstimator:
         self.weight_decay  = weight_decay
         self.patience      = patience
         self.lr            = lr
+        self.tolerance     = tolerance
         self.val_size      = val_size
         self.shuffle       = shuffle
         self.batch_size    = batch_size
-        self.verbose       = verbose
         self.optimizer     = optimizer
         self.loss_function = loss_function
         self.device        = device
+        self.verbose       = verbose
+        self.verbose_grad  = verbose_grad
 
     def fit(self, X, y, **kwargs):
         return self(X, y, **kwargs)
@@ -216,7 +218,7 @@ class LeapfrogEstimator:
         optimizer = self.optimizer(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         # and augment it with a Leapfrog optimizer that performs the
         # regularization steps
-        optimizer = Optimizer(optimizer)
+        optimizer = Optimizer(optimizer, tolerance=self.tolerance, verbose_grad=self.verbose_grad)
         return optimizer
 
     def get_model(self):
