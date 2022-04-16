@@ -73,7 +73,7 @@ class LeapfrogEnsemble(torch.nn.Module):
 ## ----------------------------------------------------------------------------
 
 class LeapfrogModel(torch.nn.Module):
-    def __init__(self, q, ks, q_steps=[], skip_connections=False, proxop=None, activation=torch.nn.LeakyReLU(), activation_out=None, debug=0, seed=None):
+    def __init__(self, q, ks, q_steps=[], skip_connections=False, batchnorm=False, proxop=None, activation=torch.nn.LeakyReLU(), activation_out=None, debug=0, seed=None):
         if len(ks) < 2:
             raise ValueError("invalid argument: ks must have at least two values for input and output") 
         if seed is not None:
@@ -85,10 +85,15 @@ class LeapfrogModel(torch.nn.Module):
         self.skip_connections = skip_connections
         self.linear           = torch.nn.ModuleList([])
         self.linear.append(Linear(ks[0], ks[1], q_steps+[q], independent=False, unique=False, proxop=proxop, debug=debug))
+        self.batchnorm        = torch.nn.ModuleList([None])
         for i in range(1, len(ks)-1):
+            if batchnorm:
+                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i], eps=0, momentum=0.0))
             self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
 
     def block(self, x, i):
+        if len(self.batchnorm) > 1:
+            x = self.batchnorm[i](x)
         y = self.linear[i](x)
         y = self.activation(y)
         if x.shape == y.shape:
@@ -123,7 +128,7 @@ class LeapfrogModel(torch.nn.Module):
 ## ----------------------------------------------------------------------------
 
 class LeapfrogIndependentModel(torch.nn.Module):
-    def __init__(self, q, ks, q_steps=[], skip_connections=False, proxop=None, activation=torch.nn.LeakyReLU(), activation_out=None, debug=0, seed=None):
+    def __init__(self, q, ks, q_steps=[], skip_connections=False, batchnorm=False, proxop=None, activation=torch.nn.LeakyReLU(), activation_out=None, debug=0, seed=None):
         if len(ks) < 2:
             raise ValueError("invalid argument: ks must have at least two values for input and output") 
         if seed is not None:
@@ -135,10 +140,15 @@ class LeapfrogIndependentModel(torch.nn.Module):
         self.skip_connections = skip_connections
         self.linear           = torch.nn.ModuleList([])
         self.linear.append(Linear(ks[0], ks[1], q_steps+[q], independent=True, unique=True, proxop=proxop, debug=debug))
+        self.batchnorm        = torch.nn.ModuleList([None])
         for i in range(1, len(ks)-1):
+            if batchnorm:
+                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i], eps=0, momentum=0.0))
             self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
 
     def block(self, x, i):
+        if len(self.batchnorm) > 1:
+            x = self.batchnorm[i](x)
         y = self.linear[i](x)
         y = self.activation(y)
         if x.shape == y.shape:
@@ -173,7 +183,7 @@ class LeapfrogIndependentModel(torch.nn.Module):
 ## ----------------------------------------------------------------------------
 
 class LeapfrogRepeatModel(torch.nn.Module):
-    def __init__(self, q, ks, q_steps=[], skip_connections=False, proxop=None, activation=torch.nn.LeakyReLU(), activation_out=None, debug=0, seed=None):
+    def __init__(self, q, ks, q_steps=[], skip_connections=False, batchnorm=False, proxop=None, activation=torch.nn.LeakyReLU(), activation_out=None, debug=0, seed=None):
         if len(ks) < 2:
             raise ValueError("invalid argument: ks must have at least two values for input and output") 
         if seed is not None:
@@ -186,10 +196,15 @@ class LeapfrogRepeatModel(torch.nn.Module):
         self.linear           = torch.nn.ModuleList([])
         self.linear_k         = ks[1]
         self.linear.append(Linear(ks[0], 1, q_steps+[q], independent=False, unique=False, proxop=proxop, debug=debug))
+        self.batchnorm        = torch.nn.ModuleList([None])
         for i in range(1, len(ks)-1):
+            if batchnorm:
+                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i], eps=0, momentum=0.0))
             self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
 
     def block(self, x, i):
+        if len(self.batchnorm) > 1:
+            x = self.batchnorm[i](x)
         y = self.linear[i](x)
         y = self.activation(y)
         if x.shape == y.shape:

@@ -157,6 +157,14 @@ class Optimizer():
         self.loss         = None
         self.tolerance    = tolerance
         self.verbose_grad = verbose_grad
+        self._copy_parameters()
+
+    def _copy_parameters(self):
+        ## copy data to data_old
+        for param_group in self.optimizer.param_groups:
+            for parameters in param_group['params']:
+                if isinstance(parameters, Parameter):
+                    parameters.data_old.copy_(parameters.data)
 
     def zero_grad(self):
         self.optimizer.zero_grad()
@@ -165,20 +173,16 @@ class Optimizer():
         return self.optimizer.state_dict(*args, **kwargs)
 
     def step(self):
-        ## copy data to data_old
-        for param_group in self.optimizer.param_groups:
-            for parameters in param_group['params']:
-                if isinstance(parameters, Parameter):
-                    parameters.data_old.copy_(parameters.data)
-        ## make gradient step
         self.optimizer.step()
-        ## regularize result
+
+    def regularize(self):
         for i, param_group in enumerate(self.optimizer.param_groups):
             for j, parameters in enumerate(param_group['params']):
                 if self.verbose_grad:
                     print(f'mean abs grad: {i}:{j}={np.mean(np.abs(parameters.grad.detach().cpu().numpy()))}')
                 if isinstance(parameters, Parameter):
                     parameters.regularize()
+        self._copy_parameters()
 
     def converged(self, loss):
         converged = False

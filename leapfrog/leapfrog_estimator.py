@@ -147,6 +147,9 @@ class LeapfrogEstimator:
                 # Record loss
                 loss_sum += loss.item()
                 loss_n   += 1.0
+            
+            # Apply leapfrog regularization
+            optimizer.regularize()
 
             loss_train = loss_sum / loss_n
             if self.verbose:
