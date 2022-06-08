@@ -31,7 +31,7 @@ from .leapfrog import Optimizer
 ## ----------------------------------------------------------------------------
 
 class LeapfrogEstimator:
-    def __init__(self, model, epochs=10000, tolerance=1e-4, patience=7, warm_up_steps=100, val_size=0.0, optimizer=torch.optim.Adam, loss_function=torch.nn.L1Loss(), shuffle=True, batch_size=None, device=None, optimargs={}, verbose=False, verbose_grad=False):
+    def __init__(self, model, epochs=10000, tolerance=1e-4, patience=7, warm_up_steps=100, val_size=0.0, optimizer=torch.optim.Adam, loss_function=torch.nn.L1Loss(), random_state=42, shuffle=True, batch_size=None, device=None, optimargs={}, verbose=False, verbose_grad=False):
 
         self.model         = model
         self.epochs        = epochs
@@ -44,6 +44,7 @@ class LeapfrogEstimator:
         self.optimizer     = optimizer
         self.loss_function = loss_function
         self.device        = device
+        self.random_state  = random_state
         self.verbose       = verbose
         self.verbose_grad  = verbose_grad
         self.optimargs     = optimargs
@@ -77,7 +78,7 @@ class LeapfrogEstimator:
         hist_val   = []
 
         if self.val_size > 0.0:
-            X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=self.val_size, random_state=43, shuffle=True)
+            X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=self.val_size, random_state=self.random_state, shuffle=True)
 
             X_train = torch.tensor(X_train, dtype=torch.float32)
             X_val   = torch.tensor(X_val  , dtype=torch.float32)
