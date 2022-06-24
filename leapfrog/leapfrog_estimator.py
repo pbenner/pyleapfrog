@@ -128,6 +128,7 @@ class LeapfrogEstimator:
                 print(f'\nTraining epoch: {_epoch}')
                 print(f'Final target: {final_target}')
                 sys.stdout.flush()
+            self.model.train()
             loss_sum = 0.0
             loss_n   = 0.0
             for _, data in enumerate(trainloader, 0):
@@ -174,6 +175,7 @@ class LeapfrogEstimator:
                             sys.stdout.flush()
 
             # Get validation loss
+            self.model.eval()
             if X_train is X_val:
                 loss_val = loss_train
             else:
@@ -210,6 +212,7 @@ class LeapfrogEstimator:
             sys.stdout.flush()
 
         self.model.load_state_dict(es.model)
+        self.model.eval()
 
         if X_train is X_val:
             return {'train_loss': hist_train}
