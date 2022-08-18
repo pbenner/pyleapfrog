@@ -80,18 +80,18 @@ class LeapfrogEstimator:
         if self.val_size > 0.0:
             X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=self.val_size, random_state=self.random_state, shuffle=True)
 
-            X_train = torch.tensor(X_train, dtype=torch.float32)
-            X_val   = torch.tensor(X_val  , dtype=torch.float32)
-            y_train = torch.tensor(y_train, dtype=torch.float32)
-            y_val   = torch.tensor(y_val  , dtype=torch.float32)
+            X_train = torch.tensor(X_train)
+            X_val   = torch.tensor(X_val)
+            y_train = torch.tensor(y_train)
+            y_val   = torch.tensor(y_val)
 
             if device is not None:
                 X_train, X_val = X_train.to(device), X_val.to(device)
                 y_train, y_val = y_train.to(device), y_val.to(device)
 
         else:
-            X_train = torch.tensor(X, dtype=torch.float32)
-            y_train = torch.tensor(y, dtype=torch.float32)
+            X_train = torch.tensor(X)
+            y_train = torch.tensor(y)
             if device is not None:
                 X_train = X_train.to(device)
                 y_train = y_train.to(device)
@@ -100,8 +100,8 @@ class LeapfrogEstimator:
                 X_val = X_train
                 y_val = y_train
             else:
-                X_val = torch.tensor(X_val, dtype=torch.float32)
-                y_val = torch.tensor(y_val, dtype=torch.float32)
+                X_val = torch.tensor(X_val)
+                y_val = torch.tensor(y_val)
                 if device is not None:
                     X_val = X_val.to(device)
                     y_val = y_val.to(device)
@@ -211,7 +211,7 @@ class LeapfrogEstimator:
             print(f'Maximum number of epochs reached')
             sys.stdout.flush()
 
-        self.model.load_state_dict(es.model)
+        self.model.load_state_dict(es.model_state)
         self.model.eval()
 
         if X_train is X_val:

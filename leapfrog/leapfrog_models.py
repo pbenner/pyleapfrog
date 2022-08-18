@@ -41,7 +41,7 @@ class LogisticModel(torch.nn.Module):
         return x
 
     def predict(self, X, device=None):
-        X = torch.tensor(X, dtype=torch.float32, device=device)
+        X = torch.tensor(X, device=device)
         self = self.to(X.device)
         with torch.no_grad():
             y_hat = self(X)
@@ -88,7 +88,7 @@ class LeapfrogModel(torch.nn.Module):
         self.batchnorm        = torch.nn.ModuleList([None])
         for i in range(1, len(ks)-1):
             if batchnorm:
-                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i], eps=0, momentum=0.0))
+                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i]))
             self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
 
     def block(self, x, i):
@@ -118,7 +118,7 @@ class LeapfrogModel(torch.nn.Module):
         return x
 
     def predict(self, X, device=None):
-        X = torch.tensor(X, dtype=torch.float32, device=device)
+        X = torch.tensor(X, device=device)
         self = self.to(X.device)
         with torch.no_grad():
             y_hat = self(X)
@@ -173,7 +173,7 @@ class LeapfrogIndependentModel(torch.nn.Module):
         return x
 
     def predict(self, X, device=None):
-        X = torch.tensor(X, dtype=torch.float32, device=device)
+        X = torch.tensor(X, device=device)
         self = self.to(X.device)
         with torch.no_grad():
             y_hat = self(X)
@@ -230,7 +230,7 @@ class LeapfrogRepeatModel(torch.nn.Module):
         return x
 
     def predict(self, X, device=None):
-        X = torch.tensor(X, dtype=torch.float32, device=device)
+        X = torch.tensor(X, device=device)
         self = self.to(X.device)
         with torch.no_grad():
             y_hat = self(X)

@@ -32,10 +32,10 @@ from leapfrog_core import _leapfrog_regularize
 
 class Parameter(torch.nn.Parameter):
     @staticmethod
-    def __new__(cls, data,  q, independent=True, unique=False, proxop=None, debug=0, *args, **kwargs):
+    def __new__(cls, data,  q, independent=True, unique=False, proxop=None, debug=0, dtype=None, *args, **kwargs):
         return super().__new__(cls, data, *args, **kwargs)
 
-    def __init__(self, data, q, independent=True, unique=False, proxop=None, debug=0):
+    def __init__(self, data, q, independent=True, unique=False, proxop=None, debug=0, dtype=None):
         super().__init__()
         if q is not None and len(q) == 0:
             raise ValueError
@@ -49,17 +49,17 @@ class Parameter(torch.nn.Parameter):
         self.independent = independent
         self.debug       = debug
         if independent:
-            self.nu           = np.zeros(self.shape[1], dtype=np.float32)
-            self.sigma        = np.zeros(self.shape[1], dtype=np.float32)
-            self.weight_decay = np.zeros(self.shape[0], dtype=np.float32)
+            self.nu           = torch.zeros(self.shape[1], dtype=torch.float32)
+            self.sigma        = torch.zeros(self.shape[1], dtype=torch.float32)
+            self.weight_decay = torch.zeros(self.shape[0], dtype=torch.float32)
             if unique:
                 self.exclude = np.array(self.shape[1]*[False])
             else:
                 self.exclude = None
         else:
-            self.nu           = np.zeros(self.shape, dtype=np.float32).flatten()
-            self.sigma        = np.zeros(self.shape, dtype=np.float32).flatten()
-            self.weight_decay = np.zeros(1, dtype=np.float32)
+            self.nu           = torch.zeros(self.shape, dtype=torch.float32).flatten()
+            self.sigma        = torch.zeros(self.shape, dtype=torch.float32).flatten()
+            self.weight_decay = torch.zeros(         1, dtype=torch.float32)
             self.exclude      = None
 
     def clone(self, *args, **kwargs): 
@@ -100,8 +100,8 @@ class Parameter(torch.nn.Parameter):
         self.weight_decay[i] = _leapfrog_regularize(data.numpy(),
             self.data_old[i].numpy(),
             self.grad[i].cpu().numpy(),
-            self.nu,
-            self.sigma,
+            self.nu.numpy(),
+            self.sigma.numpy(),
             self.exclude,
             self.q[0],
             self.proxop,
@@ -124,8 +124,8 @@ class Parameter(torch.nn.Parameter):
         self.weight_decay = _leapfrog_regularize(data.flatten().numpy(),
             self.data_old.flatten().numpy(),
             self.grad.cpu().flatten().numpy(),
-            self.nu,
-            self.sigma,
+            self.nu.numpy(),
+            self.sigma.numpy(),
             self.exclude,
             self.q[0],
             self.proxop,

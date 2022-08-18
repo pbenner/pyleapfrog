@@ -20,6 +20,8 @@
 
 import numpy as np
 
+from collections import OrderedDict
+
 ## ----------------------------------------------------------------------------
 
 class LeapfrogStopper:
@@ -32,7 +34,7 @@ class LeapfrogStopper:
         self.val_loss_round = None
         self.delta          = delta
         self.trace_func     = trace_func
-        self.model          = None
+        self.model_state    = None
 
     def __call__(self, val_loss, model):
 
@@ -54,10 +56,15 @@ class LeapfrogStopper:
         
         return self.early_stop
 
+    def save_model(self, model):
+        self.model_state = OrderedDict()
+        for key, value in model.state_dict().items():
+            self.model_state[key] = value.detach().cpu().clone()
+
     def save_checkpoint(self, val_loss, model):
         if self.verbose:
             self.trace_func(f'EarlyStopping: Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
-        self.model          = model.state_dict()
+        self.save_model(model)
         self.val_loss_min   = val_loss
         self.val_loss_round = val_loss
         self.counter        = 0
@@ -71,4 +78,4 @@ class LeapfrogStopper:
         self.reset()
         self.val_loss_min   = None
         self.val_loss_round = None
-        self.model          = None
+        self.model_state    = None
