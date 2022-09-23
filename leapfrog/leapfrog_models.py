@@ -88,13 +88,13 @@ class LeapfrogModel(torch.nn.Module):
         self.batchnorm        = torch.nn.ModuleList([None])
         for i in range(1, len(ks)-1):
             if batchnorm:
-                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i]))
+                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i+1]))
             self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
 
     def block(self, x, i):
+        y = self.linear[i](x)
         if len(self.batchnorm) > 1:
             x = self.batchnorm[i](x)
-        y = self.linear[i](x)
         y = self.activation(y)
         if x.shape == y.shape:
             if type(self.skip_connections) == int  and i % self.skip_connections == 0:
@@ -143,13 +143,13 @@ class LeapfrogIndependentModel(torch.nn.Module):
         self.batchnorm        = torch.nn.ModuleList([None])
         for i in range(1, len(ks)-1):
             if batchnorm:
-                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i], eps=0, momentum=0.0))
+                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i+1]))
             self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
 
     def block(self, x, i):
+        y = self.linear[i](x)
         if len(self.batchnorm) > 1:
             x = self.batchnorm[i](x)
-        y = self.linear[i](x)
         y = self.activation(y)
         if x.shape == y.shape:
             if type(self.skip_connections) == int  and i % self.skip_connections == 0:
@@ -199,13 +199,13 @@ class LeapfrogRepeatModel(torch.nn.Module):
         self.batchnorm        = torch.nn.ModuleList([None])
         for i in range(1, len(ks)-1):
             if batchnorm:
-                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i], eps=0, momentum=0.0))
+                self.batchnorm.append(torch.nn.BatchNorm1d(ks[i+1]))
             self.linear.append(torch.nn.Linear(ks[i], ks[i+1]))
 
     def block(self, x, i):
+        y = self.linear[i](x)
         if len(self.batchnorm) > 1:
             x = self.batchnorm[i](x)
-        y = self.linear[i](x)
         y = self.activation(y)
         if x.shape == y.shape:
             if type(self.skip_connections) == int  and i % self.skip_connections == 0:
